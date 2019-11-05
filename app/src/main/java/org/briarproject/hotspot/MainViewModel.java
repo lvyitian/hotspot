@@ -7,6 +7,10 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.LocalOnlyHotspotCallback;
 import android.net.wifi.WifiManager.LocalOnlyHotspotReservation;
 import android.net.wifi.WifiManager.WifiLock;
+import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.WifiP2pManager.ActionListener;
+import android.net.wifi.p2p.WifiP2pManager.Channel;
+import android.os.Handler;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 
@@ -16,6 +20,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import static android.content.Context.POWER_SERVICE;
+import static android.content.Context.WIFI_P2P_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
 import static android.net.wifi.WifiManager.WIFI_MODE_FULL;
 import static android.os.Build.VERSION.SDK_INT;
@@ -25,25 +30,33 @@ import static java.util.Objects.requireNonNull;
 @SuppressWarnings("deprecation")
 public class MainViewModel extends ViewModel {
 
-	private final MutableLiveData<WifiConfiguration> config = new MutableLiveData<>();
+	private static final int MAX_GROUP_INFO_ATTEMPTS = 5;
+
+	private final MutableLiveData<NetworkConfig> config = new MutableLiveData<>();
 	private final MutableLiveData<String> status = new MutableLiveData<>();
 
 	private Application app;
 	private String lockTag;
 	private WifiManager wifiManager;
+	private WifiP2pManager wifiP2pManager;
 	private PowerManager powerManager;
+	private Handler handler;
+
 	private WifiLock wifiLock;
 	private WakeLock wakeLock;
 	private LocalOnlyHotspotReservation reservation;
+	private Channel channel;
 
 	void setApplication(Application app) {
 		this.app = app;
 		lockTag = app.getString(R.string.app_name);
 		wifiManager = (WifiManager) app.getSystemService(WIFI_SERVICE);
+		wifiP2pManager = (WifiP2pManager) app.getSystemService(WIFI_P2P_SERVICE);
 		powerManager = (PowerManager) requireNonNull(app.getSystemService(POWER_SERVICE));
+		handler = new Handler(app.getMainLooper());
 	}
 
-	LiveData<WifiConfiguration> getWifiConfiguration() {
+	LiveData<NetworkConfig> getWifiConfiguration() {
 		return config;
 	}
 
@@ -52,7 +65,7 @@ public class MainViewModel extends ViewModel {
 	}
 
 	@RequiresApi(26)
-	void startHotspot() {
+	void startLocalOnlyHotspot() {
 		if (wifiManager == null) {
 			status.setValue(app.getString(R.string.no_wifi_manager));
 			return;
@@ -64,32 +77,114 @@ public class MainViewModel extends ViewModel {
 			@Override
 			public void onStarted(LocalOnlyHotspotReservation reservation) {
 				MainViewModel.this.reservation = reservation;
-				config.setValue(reservation.getWifiConfiguration());
+				WifiConfiguration wifiConfig = reservation.getWifiConfiguration();
+				config.setValue(new NetworkConfig(wifiConfig.SSID, wifiConfig.preSharedKey, false));
 				status.setValue(app.getString(R.string.callback_started));
 			}
 
 			@Override
 			public void onStopped() {
-				reservation = null;
-				releaseLock();
-				config.setValue(null);
-				status.setValue(app.getString(R.string.callback_stopped));
+				releaseLocalOnlyHotspot(app.getString(R.string.callback_stopped));
 			}
 
 			@Override
 			public void onFailed(int reason) {
-				reservation = null;
-				releaseLock();
-				config.setValue(null);
-				status.setValue(app.getString(R.string.callback_failed, reason));
+				releaseLocalOnlyHotspot(app.getString(R.string.callback_failed, reason));
 			}
 		};
 		try {
 			wifiManager.startLocalOnlyHotspot(callback, null);
 		} catch (SecurityException e) {
-			releaseLock();
-			status.setValue(app.getString(R.string.enable_location_service));
+			releaseLocalOnlyHotspot(app.getString(R.string.enable_location_service));
 		}
+	}
+
+	private void releaseLocalOnlyHotspot(String statusMessage) {
+		reservation = null;
+		releaseLock();
+		config.setValue(null);
+		status.setValue(statusMessage);
+	}
+
+	@RequiresApi(26)
+	void stopLocalOnlyHotspot() {
+		if (reservation == null) return;
+		reservation.close();
+		releaseLocalOnlyHotspot(app.getString(R.string.hotspot_stopped));
+	}
+
+	void startWifiP2pHotspot() {
+		if (wifiP2pManager == null) {
+			status.setValue(app.getString(R.string.no_wifi_direct));
+			return;
+		}
+		status.setValue(app.getString(R.string.starting_hotspot));
+		channel = wifiP2pManager.initialize(app, app.getMainLooper(), null);
+		if (channel == null) {
+			status.setValue(app.getString(R.string.no_wifi_direct));
+			return;
+		}
+		acquireLock();
+		wifiP2pManager.createGroup(channel, new ActionListener() {
+
+			@Override
+			public void onSuccess() {
+				status.setValue(app.getString(R.string.callback_waiting));
+				requestGroupInfo(1);
+			}
+
+			@Override
+			public void onFailure(int reason) {
+				releaseWifiP2pHotspot(app.getString(R.string.callback_failed, reason));
+			}
+		});
+	}
+
+	private void requestGroupInfo(int attempt) {
+		wifiP2pManager.requestGroupInfo(channel, group -> {
+			if (group == null) {
+				// On some devices we need to wait for the group info to become available
+				if (attempt < MAX_GROUP_INFO_ATTEMPTS) {
+					handler.postDelayed(() -> requestGroupInfo(attempt + 1), 1000);
+				} else {
+					releaseWifiP2pHotspot(app.getString(R.string.callback_no_group_info));
+				}
+			} else {
+				config.setValue(new NetworkConfig(group.getNetworkName(), group.getPassphrase(),
+						true));
+				status.setValue(app.getString(R.string.callback_started));
+			}
+		});
+	}
+
+	private void releaseWifiP2pHotspot(String statusMessage) {
+		if (SDK_INT >= 27) channel.close();
+		channel = null;
+		releaseLock();
+		config.setValue(null);
+		status.setValue(statusMessage);
+	}
+
+	void stopWifiP2pHotspot() {
+		if (channel == null) return;
+		wifiP2pManager.removeGroup(channel, new ActionListener() {
+
+			@Override
+			public void onSuccess() {
+				releaseWifiP2pHotspot(app.getString(R.string.hotspot_stopped));
+			}
+
+			@Override
+			public void onFailure(int reason) {
+				releaseWifiP2pHotspot(app.getString(R.string.hotspot_stopped));
+			}
+		});
+	}
+
+	@Override
+	protected void onCleared() {
+		if (SDK_INT >= 26) stopLocalOnlyHotspot();
+		stopWifiP2pHotspot();
 	}
 
 	@SuppressLint("WakelockTimeout")
@@ -110,25 +205,15 @@ public class MainViewModel extends ViewModel {
 		else wifiLock.release();
 	}
 
-	@RequiresApi(26)
-	void stopHotspot() {
-		if (reservation != null) {
-			reservation.close();
-			reservation = null;
-			releaseLock();
-			config.setValue(null);
-			status.setValue(app.getString(R.string.hotspot_stopped));
-		}
-	}
+	static class NetworkConfig {
 
-	@Override
-	protected void onCleared() {
-		if (SDK_INT >= 26 && reservation != null) {
-			reservation.close();
-			reservation = null;
-			releaseLock();
-			config.setValue(null);
-			status.setValue(app.getString(R.string.hotspot_stopped));
+		final String ssid, password;
+		final boolean hidden;
+
+		NetworkConfig(String ssid, String password, boolean hidden) {
+			this.ssid = ssid;
+			this.password = password;
+			this.hidden = hidden;
 		}
 	}
 }

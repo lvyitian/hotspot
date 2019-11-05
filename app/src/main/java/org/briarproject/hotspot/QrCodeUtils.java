@@ -19,10 +19,9 @@ class QrCodeUtils {
 
 	private static String TAG = QrCodeUtils.class.getName();
 
-	static String createWifiLoginString(String ssid, String password,
-										String type, boolean hidden) {
+	static String createWifiLoginString(String ssid, String password, boolean hidden) {
 		// https://en.wikipedia.org/wiki/QR_code#WiFi_network_login
-		return "WIFI:S:" + ssid + ";T:" + type + ";P:" + password + ";H:" + hidden;
+		return "WIFI:S:" + ssid + ";P:" + password + ";T:WPA;H:" + hidden;
 	}
 
 	@Nullable
