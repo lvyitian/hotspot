@@ -181,15 +181,10 @@ public class MainViewModel extends ViewModel {
 
 	@SuppressLint("WakelockTimeout")
 	private void acquireLock() {
-		if (SDK_INT >= 29) {
-			// WIFI_MODE_FULL has no effect on API >= 29
-			wifiLock = wifiManager.createWifiLock(WIFI_MODE_FULL_HIGH_PERF, lockTag);
-			wifiLock.acquire();
-		} else {
-			wifiLock = wifiManager.createWifiLock(WIFI_MODE_FULL, lockTag);
-			wifiLock.acquire();
-		}
-
+		// WIFI_MODE_FULL has no effect on API >= 29
+		int lockType = SDK_INT >= 29 ? WIFI_MODE_FULL_HIGH_PERF : WIFI_MODE_FULL;
+		wifiLock = wifiManager.createWifiLock(lockType, lockTag);
+		wifiLock.acquire();
 	}
 
 	private void releaseLock() {
