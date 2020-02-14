@@ -14,6 +14,8 @@ import static android.graphics.Bitmap.Config.ARGB_8888;
 import static android.graphics.Color.BLACK;
 import static android.graphics.Color.WHITE;
 import static com.google.zxing.BarcodeFormat.QR_CODE;
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 
 class QrCodeUtils {
 
@@ -26,10 +28,11 @@ class QrCodeUtils {
 
 	@Nullable
 	static Bitmap createQrCode(DisplayMetrics dm, String input) {
-		int smallestDimen = Math.min(dm.widthPixels, dm.heightPixels);
+		int smallestDimen = min(dm.widthPixels, dm.heightPixels);
+		int largestDimen = max(dm.widthPixels, dm.heightPixels);
+		int size = min(smallestDimen, largestDimen / 2);
 		try {
-			BitMatrix encoded = new QRCodeWriter().encode(input, QR_CODE,
-					smallestDimen, smallestDimen);
+			BitMatrix encoded = new QRCodeWriter().encode(input, QR_CODE, size, size);
 			return renderQrCode(encoded);
 		} catch (WriterException e) {
 			Log.w(TAG, e);
