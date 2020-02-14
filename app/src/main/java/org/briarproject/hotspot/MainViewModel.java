@@ -11,23 +11,18 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.os.Handler;
-import android.os.PowerManager;
-import android.os.PowerManager.WakeLock;
 
 import androidx.annotation.RequiresApi;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import static android.content.Context.POWER_SERVICE;
 import static android.content.Context.WIFI_P2P_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
 import static android.net.wifi.WifiManager.WIFI_MODE_FULL;
+import static android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF;
 import static android.os.Build.VERSION.SDK_INT;
-import static android.os.PowerManager.PARTIAL_WAKE_LOCK;
-import static java.util.Objects.requireNonNull;
 
-@SuppressWarnings("deprecation")
 public class MainViewModel extends ViewModel {
 
 	private static final int MAX_GROUP_INFO_ATTEMPTS = 5;
@@ -39,11 +34,9 @@ public class MainViewModel extends ViewModel {
 	private String lockTag;
 	private WifiManager wifiManager;
 	private WifiP2pManager wifiP2pManager;
-	private PowerManager powerManager;
 	private Handler handler;
 
 	private WifiLock wifiLock;
-	private WakeLock wakeLock;
 	private LocalOnlyHotspotReservation reservation;
 	private Channel channel;
 
@@ -52,7 +45,6 @@ public class MainViewModel extends ViewModel {
 		lockTag = app.getString(R.string.app_name);
 		wifiManager = (WifiManager) app.getSystemService(WIFI_SERVICE);
 		wifiP2pManager = (WifiP2pManager) app.getSystemService(WIFI_P2P_SERVICE);
-		powerManager = (PowerManager) requireNonNull(app.getSystemService(POWER_SERVICE));
 		handler = new Handler(app.getMainLooper());
 	}
 
@@ -190,9 +182,9 @@ public class MainViewModel extends ViewModel {
 	@SuppressLint("WakelockTimeout")
 	private void acquireLock() {
 		if (SDK_INT >= 29) {
-			// WIFI_MODE_FULL has no effect on API >= 29 so we have to hold a wake lock
-			wakeLock = powerManager.newWakeLock(PARTIAL_WAKE_LOCK, lockTag);
-			wakeLock.acquire();
+			// WIFI_MODE_FULL has no effect on API >= 29
+			wifiLock = wifiManager.createWifiLock(WIFI_MODE_FULL_HIGH_PERF, lockTag);
+			wifiLock.acquire();
 		} else {
 			wifiLock = wifiManager.createWifiLock(WIFI_MODE_FULL, lockTag);
 			wifiLock.acquire();
@@ -201,8 +193,7 @@ public class MainViewModel extends ViewModel {
 	}
 
 	private void releaseLock() {
-		if (SDK_INT >= 29) wakeLock.release();
-		else wifiLock.release();
+		wifiLock.release();
 	}
 
 	static class NetworkConfig {
