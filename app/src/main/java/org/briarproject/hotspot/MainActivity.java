@@ -7,14 +7,9 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProviders;
 
-import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
-import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.os.Build.VERSION.SDK_INT;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 import static org.briarproject.hotspot.QrCodeUtils.createQrCode;
@@ -73,39 +68,7 @@ public class MainActivity extends AppCompatActivity {
 
 	public void onButtonClick(View view) {
 		button.setEnabled(false);
-		if (hotspotStarted) stopHotspot();
-		else startHotspot();
-	}
-
-	private void startHotspot() {
-		if (SDK_INT >= 26) {
-			if (ContextCompat.checkSelfPermission(this, ACCESS_COARSE_LOCATION)
-					== PERMISSION_GRANTED) {
-				viewModel.startLocalOnlyHotspot();
-			} else {
-				requestPermissions(new String[]{ACCESS_COARSE_LOCATION}, 0);
-			}
-		} else {
-			viewModel.startWifiP2pHotspot();
-		}
-	}
-
-	private void stopHotspot() {
-		if (SDK_INT >= 26 && ContextCompat.checkSelfPermission(this, ACCESS_COARSE_LOCATION)
-				== PERMISSION_GRANTED) {
-			viewModel.stopLocalOnlyHotspot();
-		} else {
-			viewModel.stopWifiP2pHotspot();
-		}
-	}
-
-	@Override
-	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-										   @NonNull int[] grantResults) {
-		if (SDK_INT >= 26 && grantResults.length == 1 && grantResults[0] == PERMISSION_GRANTED) {
-			viewModel.startLocalOnlyHotspot();
-		} else {
-			viewModel.startWifiP2pHotspot();
-		}
+		if (hotspotStarted) viewModel.stopWifiP2pHotspot();
+		else viewModel.startWifiP2pHotspot();
 	}
 }

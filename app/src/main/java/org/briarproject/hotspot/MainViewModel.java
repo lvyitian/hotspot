@@ -2,17 +2,13 @@ package org.briarproject.hotspot;
 
 import android.annotation.SuppressLint;
 import android.app.Application;
-import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
-import android.net.wifi.WifiManager.LocalOnlyHotspotCallback;
-import android.net.wifi.WifiManager.LocalOnlyHotspotReservation;
 import android.net.wifi.WifiManager.WifiLock;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.os.Handler;
 
-import androidx.annotation.RequiresApi;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -37,7 +33,6 @@ public class MainViewModel extends ViewModel {
 	private Handler handler;
 
 	private WifiLock wifiLock;
-	private LocalOnlyHotspotReservation reservation;
 	private Channel channel;
 
 	void setApplication(Application app) {
@@ -54,55 +49,6 @@ public class MainViewModel extends ViewModel {
 
 	LiveData<String> getStatus() {
 		return status;
-	}
-
-	@RequiresApi(26)
-	void startLocalOnlyHotspot() {
-		if (wifiManager == null) {
-			status.setValue(app.getString(R.string.no_wifi_manager));
-			return;
-		}
-		status.setValue(app.getString(R.string.starting_hotspot));
-		acquireLock();
-		LocalOnlyHotspotCallback callback = new LocalOnlyHotspotCallback() {
-
-			@Override
-			public void onStarted(LocalOnlyHotspotReservation reservation) {
-				MainViewModel.this.reservation = reservation;
-				WifiConfiguration wifiConfig = reservation.getWifiConfiguration();
-				config.setValue(new NetworkConfig(wifiConfig.SSID, wifiConfig.preSharedKey, false));
-				status.setValue(app.getString(R.string.callback_started));
-			}
-
-			@Override
-			public void onStopped() {
-				releaseLocalOnlyHotspot(app.getString(R.string.callback_stopped));
-			}
-
-			@Override
-			public void onFailed(int reason) {
-				releaseLocalOnlyHotspot(app.getString(R.string.callback_failed, reason));
-			}
-		};
-		try {
-			wifiManager.startLocalOnlyHotspot(callback, null);
-		} catch (SecurityException e) {
-			releaseLocalOnlyHotspot(app.getString(R.string.enable_location_service));
-		}
-	}
-
-	private void releaseLocalOnlyHotspot(String statusMessage) {
-		reservation = null;
-		releaseLock();
-		config.setValue(null);
-		status.setValue(statusMessage);
-	}
-
-	@RequiresApi(26)
-	void stopLocalOnlyHotspot() {
-		if (reservation == null) return;
-		reservation.close();
-		releaseLocalOnlyHotspot(app.getString(R.string.hotspot_stopped));
 	}
 
 	void startWifiP2pHotspot() {
@@ -176,7 +122,6 @@ public class MainViewModel extends ViewModel {
 
 	@Override
 	protected void onCleared() {
-		if (SDK_INT >= 26) stopLocalOnlyHotspot();
 		stopWifiP2pHotspot();
 	}
 
