@@ -127,7 +127,8 @@ public class MainViewModel extends ViewModel {
 
 			@Override
 			public void onFailure(int reason) {
-				releaseWifiP2pHotspot(app.getString(R.string.callback_failed, reason));
+				if (reason == 2) requestGroupInfo(1); // Hotspot already running
+				else releaseWifiP2pHotspot(app.getString(R.string.callback_failed, reason));
 			}
 		});
 	}
