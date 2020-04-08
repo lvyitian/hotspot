@@ -10,6 +10,10 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProviders;
 
+import static android.Manifest.permission.ACCESS_BACKGROUND_LOCATION;
+import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.os.Build.VERSION.SDK_INT;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 import static org.briarproject.hotspot.QrCodeUtils.createQrCode;
@@ -64,6 +68,11 @@ public class MainActivity extends AppCompatActivity {
 		});
 
 		viewModel.getStatus().observe(this, status -> statusView.setText(status));
+
+		if (SDK_INT >= 29 && (checkSelfPermission(ACCESS_FINE_LOCATION) != PERMISSION_GRANTED
+				|| checkSelfPermission(ACCESS_BACKGROUND_LOCATION) != PERMISSION_GRANTED)) {
+			requestPermissions(new String[]{ACCESS_FINE_LOCATION, ACCESS_BACKGROUND_LOCATION}, 0);
+		}
 	}
 
 	public void onButtonClick(View view) {
