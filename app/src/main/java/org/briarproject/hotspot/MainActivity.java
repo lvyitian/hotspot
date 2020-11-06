@@ -8,7 +8,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		viewModel = ViewModelProviders.of(this).get(MainViewModel.class);
+		viewModel = new ViewModelProvider(this).get(MainViewModel.class);
 		viewModel.setApplication(getApplication());
 
 		qrCode = findViewById(R.id.qr_code);

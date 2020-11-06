@@ -6,11 +6,9 @@
 	<string name="password">Password: %s</string>
 	<string name="starting_hotspot">Starting hotspot</string>
 	<string name="callback_started">Hotspot started</string>
-	<string name="callback_stopped">Hotspot disabled</string>
 	<string name="callback_failed">Hotspot failed to start: error code %d</string>
 	<string name="callback_waiting">Waiting for hotspot to start</string>
 	<string name="callback_no_group_info">Hotspot failed to start: no group info</string>
-	<string name="enable_location_service">Please enable location service</string>
 	<string name="hotspot_stopped">Hotspot stopped</string>
 	<string name="qr_code_description">QR code with Wi-Fi login details</string>
 	<string name="no_wifi_manager">Device does not support Wi-Fi</string>
