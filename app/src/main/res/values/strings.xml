@@ -15,4 +15,5 @@
 	<string name="qr_code_description">QR code with Wi-Fi login details</string>
 	<string name="no_wifi_manager">Device does not support Wi-Fi</string>
 	<string name="no_wifi_direct">Device does not support Wi-Fi Direct</string>
+	<string name="callback_permission_denied">Location permission was denied</string>
 </resources>

@@ -7,6 +7,7 @@ import android.net.wifi.WifiManager.WifiLock;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
+import android.net.wifi.p2p.WifiP2pManager.GroupInfoListener;
 import android.os.Handler;
 
 import androidx.lifecycle.LiveData;
@@ -63,7 +64,7 @@ public class MainViewModel extends ViewModel {
 			return;
 		}
 		acquireLock();
-		wifiP2pManager.createGroup(channel, new ActionListener() {
+		ActionListener listener = new ActionListener() {
 
 			@Override
 			public void onSuccess() {
@@ -76,11 +77,16 @@ public class MainViewModel extends ViewModel {
 				if (reason == 2) requestGroupInfo(1); // Hotspot already running
 				else releaseWifiP2pHotspot(app.getString(R.string.callback_failed, reason));
 			}
-		});
+		};
+		try {
+			wifiP2pManager.createGroup(channel, listener);
+		} catch (SecurityException e) {
+			releaseWifiP2pHotspot(app.getString(R.string.callback_permission_denied));
+		}
 	}
 
 	private void requestGroupInfo(int attempt) {
-		wifiP2pManager.requestGroupInfo(channel, group -> {
+		GroupInfoListener listener = group -> {
 			if (group == null) {
 				// On some devices we need to wait for the group info to become available
 				if (attempt < MAX_GROUP_INFO_ATTEMPTS) {
@@ -93,7 +99,12 @@ public class MainViewModel extends ViewModel {
 						true));
 				status.setValue(app.getString(R.string.callback_started));
 			}
-		});
+		};
+		try {
+			wifiP2pManager.requestGroupInfo(channel, listener);
+		} catch (SecurityException e) {
+			releaseWifiP2pHotspot(app.getString(R.string.callback_permission_denied));
+		}
 	}
 
 	private void releaseWifiP2pHotspot(String statusMessage) {
