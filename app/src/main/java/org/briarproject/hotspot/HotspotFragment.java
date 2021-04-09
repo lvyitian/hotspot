@@ -28,7 +28,7 @@ public class HotspotFragment extends Fragment {
     private MainViewModel viewModel;
     private ImageView qrCode;
     private TextView ssidView, passwordView, statusView;
-    private Button button;
+    private Button button, serverButton;
     private boolean hotspotStarted = false;
 
     @Override
@@ -49,6 +49,8 @@ public class HotspotFragment extends Fragment {
         statusView = v.findViewById(R.id.status);
         button = v.findViewById(R.id.button);
         button.setOnClickListener(this::onButtonClick);
+        serverButton = v.findViewById(R.id.serverButton);
+        serverButton.setOnClickListener(this::onServerButtonClick);
 
         viewModel.getWifiConfiguration().observe(getViewLifecycleOwner(), config -> {
             if (config == null) {
@@ -57,6 +59,7 @@ public class HotspotFragment extends Fragment {
                 passwordView.setText("");
                 button.setText(R.string.start_hotspot);
                 button.setEnabled(true);
+                serverButton.setVisibility(GONE);
                 hotspotStarted = false;
             } else {
                 String qrCodeText = createWifiLoginString(config.ssid, config.password,
@@ -72,6 +75,7 @@ public class HotspotFragment extends Fragment {
                 passwordView.setText(getString(R.string.password, config.password));
                 button.setText(R.string.stop_hotspot);
                 button.setEnabled(true);
+                serverButton.setVisibility(VISIBLE);
                 hotspotStarted = true;
             }
         });
@@ -86,6 +90,13 @@ public class HotspotFragment extends Fragment {
         button.setEnabled(false);
         if (hotspotStarted) viewModel.stopWifiP2pHotspot();
         else viewModel.startWifiP2pHotspot();
+    }
+
+    public void onServerButtonClick(View view) {
+        getParentFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, new ServerFragment())
+                .addToBackStack(null)
+                .commit();
     }
 
 }
