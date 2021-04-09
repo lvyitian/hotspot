@@ -10,9 +10,10 @@ import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.GroupInfoListener;
 import android.os.Handler;
 
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
 
 import static android.content.Context.WIFI_P2P_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
@@ -20,29 +21,30 @@ import static android.net.wifi.WifiManager.WIFI_MODE_FULL;
 import static android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF;
 import static android.os.Build.VERSION.SDK_INT;
 
-public class MainViewModel extends ViewModel {
+public class MainViewModel extends AndroidViewModel {
 
 	private static final int MAX_GROUP_INFO_ATTEMPTS = 5;
 
 	private final MutableLiveData<NetworkConfig> config = new MutableLiveData<>();
 	private final MutableLiveData<String> status = new MutableLiveData<>();
 
-	private Application app;
-	private String lockTag;
-	private WifiManager wifiManager;
-	private WifiP2pManager wifiP2pManager;
-	private Handler handler;
+	private final Application app;
+	private final String lockTag;
+	private final WifiManager wifiManager;
+	private final WifiP2pManager wifiP2pManager;
+	private final Handler handler;
 
 	private WifiLock wifiLock;
 	private Channel channel;
 
-	void setApplication(Application app) {
-		this.app = app;
-		lockTag = app.getString(R.string.app_name);
-		wifiManager = (WifiManager) app.getSystemService(WIFI_SERVICE);
-		wifiP2pManager = (WifiP2pManager) app.getSystemService(WIFI_P2P_SERVICE);
-		handler = new Handler(app.getMainLooper());
-	}
+    public MainViewModel(@NonNull Application application) {
+        super(application);
+        app = application;
+        lockTag = app.getString(R.string.app_name);
+        wifiManager = (WifiManager) app.getSystemService(WIFI_SERVICE);
+        wifiP2pManager = (WifiP2pManager) app.getSystemService(WIFI_P2P_SERVICE);
+        handler = new Handler(app.getMainLooper());
+    }
 
 	LiveData<NetworkConfig> getWifiConfiguration() {
 		return config;
