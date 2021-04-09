@@ -15,6 +15,8 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import java.io.IOException;
+
 import static android.content.Context.WIFI_P2P_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
 import static android.net.wifi.WifiManager.WIFI_MODE_FULL;
@@ -27,12 +29,15 @@ public class MainViewModel extends AndroidViewModel {
 
 	private final MutableLiveData<NetworkConfig> config = new MutableLiveData<>();
 	private final MutableLiveData<String> status = new MutableLiveData<>();
+	private final MutableLiveData<WebServerState> webServerState =
+            new MutableLiveData<>(WebServerState.STOPPED);
 
 	private final Application app;
 	private final String lockTag;
 	private final WifiManager wifiManager;
 	private final WifiP2pManager wifiP2pManager;
 	private final Handler handler;
+	private final WebServer webServer;
 
 	private WifiLock wifiLock;
 	private Channel channel;
@@ -44,6 +49,7 @@ public class MainViewModel extends AndroidViewModel {
         wifiManager = (WifiManager) app.getSystemService(WIFI_SERVICE);
         wifiP2pManager = (WifiP2pManager) app.getSystemService(WIFI_P2P_SERVICE);
         handler = new Handler(app.getMainLooper());
+        webServer = new WebServer(app);
     }
 
 	LiveData<NetworkConfig> getWifiConfiguration() {
@@ -52,6 +58,10 @@ public class MainViewModel extends AndroidViewModel {
 
 	LiveData<String> getStatus() {
 		return status;
+	}
+
+	LiveData<WebServerState> getWebServerState() {
+		return webServerState;
 	}
 
 	void startWifiP2pHotspot() {
@@ -100,6 +110,7 @@ public class MainViewModel extends AndroidViewModel {
 				config.setValue(new NetworkConfig(group.getNetworkName(), group.getPassphrase(),
 						true));
 				status.setValue(app.getString(R.string.callback_started));
+                startWebServer();
 			}
 		};
 		try {
@@ -110,7 +121,8 @@ public class MainViewModel extends AndroidViewModel {
 	}
 
 	private void releaseWifiP2pHotspot(String statusMessage) {
-		if (SDK_INT >= 27) channel.close();
+        stopWebServer();
+        if (SDK_INT >= 27) channel.close();
 		channel = null;
 		releaseLock();
 		config.setValue(null);
@@ -149,6 +161,23 @@ public class MainViewModel extends AndroidViewModel {
 	private void releaseLock() {
 		wifiLock.release();
 	}
+
+	private void startWebServer() {
+        try {
+            webServer.start();
+            webServerState.postValue(WebServerState.STARTED);
+        } catch (IOException e) {
+            e.printStackTrace();
+            webServerState.postValue(WebServerState.ERROR);
+        }
+    }
+
+    private void stopWebServer() {
+        webServer.stop();
+        webServerState.postValue(WebServerState.STOPPED);
+    }
+
+    enum WebServerState { STOPPED, STARTED, ERROR }
 
 	static class NetworkConfig {
 

@@ -14,6 +14,8 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import org.briarproject.hotspot.MainViewModel.WebServerState;
+
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.Build.VERSION.SDK_INT;
@@ -59,7 +61,6 @@ public class HotspotFragment extends Fragment {
                 passwordView.setText("");
                 button.setText(R.string.start_hotspot);
                 button.setEnabled(true);
-                serverButton.setVisibility(GONE);
                 hotspotStarted = false;
             } else {
                 String qrCodeText = createWifiLoginString(config.ssid, config.password,
@@ -75,7 +76,6 @@ public class HotspotFragment extends Fragment {
                 passwordView.setText(getString(R.string.password, config.password));
                 button.setText(R.string.stop_hotspot);
                 button.setEnabled(true);
-                serverButton.setVisibility(VISIBLE);
                 hotspotStarted = true;
             }
         });
@@ -84,6 +84,16 @@ public class HotspotFragment extends Fragment {
         if (SDK_INT >= 29 && (checkSelfPermission(requireContext(), ACCESS_FINE_LOCATION) != PERMISSION_GRANTED)) {
             requestPermissions(new String[]{ACCESS_FINE_LOCATION}, 0);
         }
+
+        viewModel.getWebServerState().observe(getViewLifecycleOwner(), state -> {
+            if (state == WebServerState.STOPPED) {
+                serverButton.setVisibility(GONE);
+            } else if (state == WebServerState.STARTED) {
+                serverButton.setVisibility(VISIBLE);
+            } else if (state == WebServerState.ERROR) {
+                statusView.setText(R.string.web_server_error);
+            }
+        });
     }
 
     public void onButtonClick(View view) {
