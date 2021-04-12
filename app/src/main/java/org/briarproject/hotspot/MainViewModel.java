@@ -54,6 +54,10 @@ public class MainViewModel extends AndroidViewModel {
         wifiP2pManager = (WifiP2pManager) app.getSystemService(WIFI_P2P_SERVICE);
         handler = new Handler(app.getMainLooper());
         webServer = new WebServer(app);
+
+        if (SDK_INT >= 21 && wifiManager.is5GHzBandSupported()) {
+	        status.setValue(app.getString(R.string.wifi_5ghz_supported));
+        }
     }
 
 	LiveData<NetworkConfig> getWifiConfiguration() {
