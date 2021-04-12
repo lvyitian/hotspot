@@ -12,6 +12,7 @@ import android.net.wifi.p2p.WifiP2pManager.GroupInfoListener;
 import android.os.Handler;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -67,7 +68,17 @@ public class MainViewModel extends AndroidViewModel {
 		return webServerState;
 	}
 
+	@RequiresApi(29)
+	boolean needToAskForEnablingWifi() {
+		return !wifiManager.isWifiEnabled();
+	}
+
 	void startWifiP2pHotspot() {
+    	if (!wifiManager.isWifiEnabled() && !wifiManager.setWifiEnabled(true)) {
+    		// TODO wait for Wi-Fi to become enabled before proceeding here
+		    status.setValue(app.getString(R.string.no_wifi_enabled));
+		    return;
+	    }
 		if (wifiP2pManager == null) {
 			status.setValue(app.getString(R.string.no_wifi_direct));
 			return;

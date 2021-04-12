@@ -16,12 +16,8 @@ import androidx.lifecycle.ViewModelProvider;
 
 import org.briarproject.hotspot.MainViewModel.WebServerState;
 
-import static android.Manifest.permission.ACCESS_FINE_LOCATION;
-import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.os.Build.VERSION.SDK_INT;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
-import static androidx.core.content.ContextCompat.checkSelfPermission;
 import static org.briarproject.hotspot.QrCodeUtils.createQrCode;
 import static org.briarproject.hotspot.QrCodeUtils.createWifiLoginString;
 
@@ -81,9 +77,6 @@ public class HotspotFragment extends Fragment {
         });
 
         viewModel.getStatus().observe(getViewLifecycleOwner(), status -> statusView.setText(status));
-        if (SDK_INT >= 29 && (checkSelfPermission(requireContext(), ACCESS_FINE_LOCATION) != PERMISSION_GRANTED)) {
-            requestPermissions(new String[]{ACCESS_FINE_LOCATION}, 0);
-        }
 
         viewModel.getWebServerState().observe(getViewLifecycleOwner(), state -> {
             if (state == WebServerState.STOPPED) {
