@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Application;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
+import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
@@ -21,7 +22,9 @@ import static android.content.Context.WIFI_P2P_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
 import static android.net.wifi.WifiManager.WIFI_MODE_FULL;
 import static android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF;
+import static android.net.wifi.p2p.WifiP2pConfig.GROUP_OWNER_BAND_2GHZ;
 import static android.os.Build.VERSION.SDK_INT;
+import static org.briarproject.hotspot.StringUtils.getRandomString;
 
 public class MainViewModel extends AndroidViewModel {
 
@@ -91,7 +94,16 @@ public class MainViewModel extends AndroidViewModel {
 			}
 		};
 		try {
-			wifiP2pManager.createGroup(channel, listener);
+			if (SDK_INT >= 29) {
+				WifiP2pConfig config = new WifiP2pConfig.Builder()
+						.setGroupOperatingBand(GROUP_OWNER_BAND_2GHZ)
+						.setNetworkName("DIRECT-42-Briar-Download")
+						.setPassphrase(getRandomString(8))
+						.build();
+				wifiP2pManager.createGroup(channel, config, listener);
+			} else {
+				wifiP2pManager.createGroup(channel, listener);
+			}
 		} catch (SecurityException e) {
 			releaseWifiP2pHotspot(app.getString(R.string.callback_permission_denied));
 		}
