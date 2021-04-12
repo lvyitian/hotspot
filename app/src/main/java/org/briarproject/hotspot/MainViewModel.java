@@ -134,11 +134,14 @@ public class MainViewModel extends AndroidViewModel {
 					releaseWifiP2pHotspot(app.getString(R.string.callback_no_group_info));
 				}
 			} else {
-				double freq = 2.4;
-				if (SDK_INT >= 29) freq = ((double) group.getFrequency()) / 1000;
 				config.setValue(new NetworkConfig(group.getNetworkName(), group.getPassphrase(),
 						true));
-				status.setValue(app.getString(R.string.callback_started, freq));
+				if (SDK_INT >= 29) {
+					double freq = ((double) group.getFrequency()) / 1000;
+					status.setValue(app.getString(R.string.callback_started_freq, freq));
+				} else {
+					status.setValue(app.getString(R.string.callback_started));
+				}
                 startWebServer();
 			}
 		};

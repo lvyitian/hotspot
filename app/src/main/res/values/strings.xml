@@ -5,7 +5,8 @@
 	<string name="ssid">Name: %s</string>
 	<string name="password">Password: %s</string>
 	<string name="starting_hotspot">Starting hotspot</string>
-	<string name="callback_started">Hotspot started (%1$.1f GHz)</string>
+	<string name="callback_started">Hotspot started</string>
+	<string name="callback_started_freq">Hotspot started (%1$.2f GHz)</string>
 	<string name="callback_failed">Hotspot failed to start: error code %d</string>
 	<string name="callback_waiting">Waiting for hotspot to start</string>
 	<string name="callback_no_group_info">Hotspot failed to start: no group info</string>
