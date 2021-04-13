@@ -10,8 +10,10 @@ import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.GroupInfoListener;
 import android.os.Handler;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
@@ -94,26 +96,31 @@ public class MainViewModel extends AndroidViewModel {
 			return;
 		}
 		acquireLock();
+		String networkName = SDK_INT >= 29 ? "DIRECT-" + getRandomString(2) + "-" +
+				getRandomString(10) : null;
 		ActionListener listener = new ActionListener() {
 
 			@Override
 			public void onSuccess() {
 				status.setValue(app.getString(R.string.callback_waiting));
-				requestGroupInfo(1);
+				requestGroupInfo(1, networkName);
 			}
 
 			@Override
 			public void onFailure(int reason) {
-				if (reason == 2) requestGroupInfo(1); // Hotspot already running
+				if (reason == 2) requestGroupInfo(1, networkName); // Hotspot already running
 				else releaseWifiP2pHotspot(app.getString(R.string.callback_failed, reason));
 			}
 		};
 		try {
 			if (SDK_INT >= 29) {
+				String passphrase = getRandomString(8);
+				Log.e("TEST", "networkName: " + networkName);
+				Log.e("TEST", "passphrase: " + passphrase);
 				WifiP2pConfig config = new WifiP2pConfig.Builder()
 						.setGroupOperatingBand(GROUP_OWNER_BAND_2GHZ)
-						.setNetworkName("DIRECT-42-Briar-Download")
-						.setPassphrase(getRandomString(8))
+						.setNetworkName(networkName)
+						.setPassphrase(passphrase)
 						.build();
 				wifiP2pManager.createGroup(channel, config, listener);
 			} else {
@@ -124,12 +131,20 @@ public class MainViewModel extends AndroidViewModel {
 		}
 	}
 
-	private void requestGroupInfo(int attempt) {
+	private void requestGroupInfo(int attempt, @Nullable String networkName) {
+		Log.e("TEST", "requestGroupInfo attempt: " + attempt);
 		GroupInfoListener listener = group -> {
-			if (group == null) {
+			boolean retry = false;
+			if (group == null) retry = true;
+			else if (networkName != null && !networkName.equals(group.getNetworkName())) {
+				retry = true;
+				Log.e("TEST", "received networkName: " + group.getNetworkName());
+				Log.e("TEST", "received passphrase: " + group.getPassphrase());
+			}
+			if (retry) {
 				// On some devices we need to wait for the group info to become available
 				if (attempt < MAX_GROUP_INFO_ATTEMPTS) {
-					handler.postDelayed(() -> requestGroupInfo(attempt + 1), 1000);
+					handler.postDelayed(() -> requestGroupInfo(attempt + 1, networkName), 1000);
 				} else {
 					releaseWifiP2pHotspot(app.getString(R.string.callback_no_group_info));
 				}
