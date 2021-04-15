@@ -136,7 +136,8 @@ public class MainViewModel extends AndroidViewModel {
 		GroupInfoListener listener = group -> {
 			boolean retry = false;
 			if (group == null) retry = true;
-			else if (networkName != null && !networkName.equals(group.getNetworkName())) {
+			else if (!group.getNetworkName().startsWith("DIRECT-") ||
+					(networkName != null && !networkName.equals(group.getNetworkName()))) {
 				retry = true;
 				Log.e("TEST", "received networkName: " + group.getNetworkName());
 				Log.e("TEST", "received passphrase: " + group.getPassphrase());
