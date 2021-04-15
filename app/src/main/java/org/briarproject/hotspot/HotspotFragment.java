@@ -33,7 +33,6 @@ public class HotspotFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_hotspot, container, false);
     }
 
