@@ -4,45 +4,63 @@ import android.annotation.SuppressLint;
 import android.app.Application;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
+import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.GroupInfoListener;
 import android.os.Handler;
+import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
+
+import java.io.IOException;
 
 import static android.content.Context.WIFI_P2P_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
 import static android.net.wifi.WifiManager.WIFI_MODE_FULL;
 import static android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF;
+import static android.net.wifi.p2p.WifiP2pConfig.GROUP_OWNER_BAND_2GHZ;
 import static android.os.Build.VERSION.SDK_INT;
+import static org.briarproject.hotspot.StringUtils.getRandomString;
 
-public class MainViewModel extends ViewModel {
+public class MainViewModel extends AndroidViewModel {
 
 	private static final int MAX_GROUP_INFO_ATTEMPTS = 5;
 
 	private final MutableLiveData<NetworkConfig> config = new MutableLiveData<>();
 	private final MutableLiveData<String> status = new MutableLiveData<>();
+	private final MutableLiveData<WebServerState> webServerState =
+            new MutableLiveData<>(WebServerState.STOPPED);
 
-	private Application app;
-	private String lockTag;
-	private WifiManager wifiManager;
-	private WifiP2pManager wifiP2pManager;
-	private Handler handler;
+	private final Application app;
+	private final String lockTag;
+	private final WifiManager wifiManager;
+	private final WifiP2pManager wifiP2pManager;
+	private final Handler handler;
+	private final WebServer webServer;
 
 	private WifiLock wifiLock;
 	private Channel channel;
 
-	void setApplication(Application app) {
-		this.app = app;
-		lockTag = app.getString(R.string.app_name);
-		wifiManager = (WifiManager) app.getSystemService(WIFI_SERVICE);
-		wifiP2pManager = (WifiP2pManager) app.getSystemService(WIFI_P2P_SERVICE);
-		handler = new Handler(app.getMainLooper());
-	}
+    public MainViewModel(@NonNull Application application) {
+        super(application);
+        app = application;
+        lockTag = app.getString(R.string.app_name);
+        wifiManager = (WifiManager) app.getSystemService(WIFI_SERVICE);
+        wifiP2pManager = (WifiP2pManager) app.getSystemService(WIFI_P2P_SERVICE);
+        handler = new Handler(app.getMainLooper());
+        webServer = new WebServer(app);
+
+        if (SDK_INT >= 21 && wifiManager.is5GHzBandSupported()) {
+	        status.setValue(app.getString(R.string.wifi_5ghz_supported));
+        }
+    }
 
 	LiveData<NetworkConfig> getWifiConfiguration() {
 		return config;
@@ -52,7 +70,21 @@ public class MainViewModel extends ViewModel {
 		return status;
 	}
 
+	LiveData<WebServerState> getWebServerState() {
+		return webServerState;
+	}
+
+	@RequiresApi(29)
+	boolean needToAskForEnablingWifi() {
+		return !wifiManager.isWifiEnabled();
+	}
+
 	void startWifiP2pHotspot() {
+    	if (!wifiManager.isWifiEnabled() && !wifiManager.setWifiEnabled(true)) {
+    		// TODO wait for Wi-Fi to become enabled before proceeding here
+		    status.setValue(app.getString(R.string.no_wifi_enabled));
+		    return;
+	    }
 		if (wifiP2pManager == null) {
 			status.setValue(app.getString(R.string.no_wifi_direct));
 			return;
@@ -64,40 +96,69 @@ public class MainViewModel extends ViewModel {
 			return;
 		}
 		acquireLock();
+		String networkName = SDK_INT >= 29 ? "DIRECT-" + getRandomString(2) + "-" +
+				getRandomString(10) : null;
 		ActionListener listener = new ActionListener() {
 
 			@Override
 			public void onSuccess() {
 				status.setValue(app.getString(R.string.callback_waiting));
-				requestGroupInfo(1);
+				requestGroupInfo(1, networkName);
 			}
 
 			@Override
 			public void onFailure(int reason) {
-				if (reason == 2) requestGroupInfo(1); // Hotspot already running
+				if (reason == 2) requestGroupInfo(1, networkName); // Hotspot already running
 				else releaseWifiP2pHotspot(app.getString(R.string.callback_failed, reason));
 			}
 		};
 		try {
-			wifiP2pManager.createGroup(channel, listener);
+			if (SDK_INT >= 29) {
+				String passphrase = getRandomString(8);
+				Log.e("TEST", "networkName: " + networkName);
+				Log.e("TEST", "passphrase: " + passphrase);
+				WifiP2pConfig config = new WifiP2pConfig.Builder()
+						.setGroupOperatingBand(GROUP_OWNER_BAND_2GHZ)
+						.setNetworkName(networkName)
+						.setPassphrase(passphrase)
+						.build();
+				wifiP2pManager.createGroup(channel, config, listener);
+			} else {
+				wifiP2pManager.createGroup(channel, listener);
+			}
 		} catch (SecurityException e) {
 			releaseWifiP2pHotspot(app.getString(R.string.callback_permission_denied));
 		}
 	}
 
-	private void requestGroupInfo(int attempt) {
+	private void requestGroupInfo(int attempt, @Nullable String networkName) {
+		Log.e("TEST", "requestGroupInfo attempt: " + attempt);
 		GroupInfoListener listener = group -> {
-			if (group == null) {
+			boolean retry = false;
+			if (group == null) retry = true;
+			else if (!group.getNetworkName().startsWith("DIRECT-") ||
+					(networkName != null && !networkName.equals(group.getNetworkName()))) {
+				retry = true;
+				Log.e("TEST", "received networkName: " + group.getNetworkName());
+				Log.e("TEST", "received passphrase: " + group.getPassphrase());
+			}
+			if (retry) {
 				// On some devices we need to wait for the group info to become available
 				if (attempt < MAX_GROUP_INFO_ATTEMPTS) {
-					handler.postDelayed(() -> requestGroupInfo(attempt + 1), 1000);
+					handler.postDelayed(() -> requestGroupInfo(attempt + 1, networkName), 1000);
 				} else {
 					releaseWifiP2pHotspot(app.getString(R.string.callback_no_group_info));
 				}
 			} else {
 				config.setValue(new NetworkConfig(group.getNetworkName(), group.getPassphrase(),
 						true));
-				status.setValue(app.getString(R.string.callback_started));
+				if (SDK_INT >= 29) {
+					double freq = ((double) group.getFrequency()) / 1000;
+					status.setValue(app.getString(R.string.callback_started_freq, freq));
+				} else {
+					status.setValue(app.getString(R.string.callback_started));
+				}
+                startWebServer();
 			}
 		};
 		try {
@@ -108,7 +169,8 @@ public class MainViewModel extends ViewModel {
 	}
 
 	private void releaseWifiP2pHotspot(String statusMessage) {
-		if (SDK_INT >= 27) channel.close();
+        stopWebServer();
+        if (SDK_INT >= 27) channel.close();
 		channel = null;
 		releaseLock();
 		config.setValue(null);
@@ -147,6 +209,23 @@ public class MainViewModel extends ViewModel {
 	private void releaseLock() {
 		wifiLock.release();
 	}
+
+	private void startWebServer() {
+        try {
+            webServer.start();
+            webServerState.postValue(WebServerState.STARTED);
+        } catch (IOException e) {
+            e.printStackTrace();
+            webServerState.postValue(WebServerState.ERROR);
+        }
+    }
+
+    private void stopWebServer() {
+        webServer.stop();
+        webServerState.postValue(WebServerState.STOPPED);
+    }
+
+    enum WebServerState { STOPPED, STARTED, ERROR }
 
 	static class NetworkConfig {
 
