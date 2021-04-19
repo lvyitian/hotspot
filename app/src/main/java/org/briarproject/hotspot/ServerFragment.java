@@ -2,6 +2,7 @@ package org.briarproject.hotspot;
 
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -15,11 +16,16 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import java.net.InetAddress;
+
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
+import static org.briarproject.hotspot.NetworkUtils.getAccessPointAddress;
 import static org.briarproject.hotspot.QrCodeUtils.createQrCode;
 
 public class ServerFragment extends Fragment {
+
+    private static String TAG = ServerFragment.class.getName();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -36,6 +42,13 @@ public class ServerFragment extends Fragment {
         TextView urlView = v.findViewById(R.id.url);
 
         String text = "http://192.168.49.1:9999";
+        InetAddress address = getAccessPointAddress();
+        if (address == null) {
+            Log.i(TAG, "Could not find access point address, assuming 192.168.49.1");
+        } else {
+            Log.i(TAG, "Access point address " + address.getHostAddress());
+            text = "http://" + address.getHostAddress() + ":9999";
+        }
 
         Bitmap qrCodeBitmap = createQrCode(getResources().getDisplayMetrics(), text);
         if (qrCodeBitmap == null) {
