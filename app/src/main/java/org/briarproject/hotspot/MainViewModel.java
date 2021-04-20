@@ -138,7 +138,8 @@ public class MainViewModel extends AndroidViewModel {
 			if (group == null) retry = true;
 			else if (!group.getNetworkName().startsWith("DIRECT-") ||
 					(networkName != null && !networkName.equals(group.getNetworkName()))) {
-				retry = true;
+				// we only retry if we have attempts left, otherwise we try what we got
+				if (attempt < MAX_GROUP_INFO_ATTEMPTS) retry = true;
 				Log.e("TEST", "received networkName: " + group.getNetworkName());
 				Log.e("TEST", "received passphrase: " + group.getPassphrase());
 			}
