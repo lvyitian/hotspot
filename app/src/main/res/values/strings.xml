@@ -1,5 +1,6 @@
 <resources>
 	<string name="app_name">Offline Hotspot</string>
+	<string name="menu_interfaces">Network interfaces</string>
 	<string name="start_hotspot">Start hotspot</string>
 	<string name="stop_hotspot">Stop hotspot</string>
 	<string name="ssid">Name: %s</string>
