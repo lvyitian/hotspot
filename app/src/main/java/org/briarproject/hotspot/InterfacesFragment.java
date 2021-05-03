@@ -21,7 +21,7 @@ public class InterfacesFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View v, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(v, savedInstanceState);
-        TextView textView = (TextView) v;
+        TextView textView = v.findViewById(R.id.text);
         textView.setText(NetworkUtils.getNetworkInterfaceSummary());
     }
 
