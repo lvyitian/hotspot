@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
 	@RequiresApi(29)
 	private void requestPermissions() {
 		if (checkSelfPermission(ACCESS_FINE_LOCATION) != PERMISSION_GRANTED) {
-			requestPermissions(new String[]{ACCESS_FINE_LOCATION}, 0);
+			requestPermissions(new String[] {ACCESS_FINE_LOCATION}, 0);
 		}
 		if (viewModel.needToAskForEnablingWifi()) {
 			Intent i = new Intent(Settings.Panel.ACTION_WIFI);

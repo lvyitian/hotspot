@@ -1,37 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@android:color/white"
-    android:gravity="center"
-    android:orientation="vertical"
-    tools:context=".ServerFragment">
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:background="@android:color/white"
+	android:gravity="center"
+	android:orientation="vertical"
+	tools:context=".ServerFragment">
 
-    <ImageView
-        android:id="@+id/qr_code"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:contentDescription="@string/qr_code_description"
-        android:visibility="gone"
-        tools:src="@tools:sample/avatars"
-        tools:visibility="visible" />
+	<ImageView
+		android:id="@+id/qr_code"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:contentDescription="@string/qr_code_description"
+		android:visibility="gone"
+		tools:src="@tools:sample/avatars"
+		tools:visibility="visible" />
 
-    <TextView
-        android:id="@+id/info"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="8dp"
-        android:gravity="center"
-        android:textSize="18sp"
-        android:text="@string/server_info" />
+	<TextView
+		android:id="@+id/info"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:padding="8dp"
+		android:gravity="center"
+		android:textSize="18sp"
+		android:text="@string/server_info" />
 
-    <TextView
-        android:id="@+id/url"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="8dp"
-        android:textSize="18sp"
-        tools:text="http://192.168.49.1:9999" />
+	<TextView
+		android:id="@+id/url"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:padding="8dp"
+		android:textSize="18sp"
+		tools:text="http://192.168.49.1:9999" />
 
 </LinearLayout>

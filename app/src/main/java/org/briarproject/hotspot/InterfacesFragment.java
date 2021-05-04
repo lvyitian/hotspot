@@ -12,17 +12,18 @@ import androidx.fragment.app.Fragment;
 
 public class InterfacesFragment extends Fragment {
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_interfaces, container, false);
-    }
+	@Override
+	public View onCreateView(LayoutInflater inflater, ViewGroup container,
+			Bundle savedInstanceState) {
+		return inflater.inflate(R.layout.fragment_interfaces, container, false);
+	}
 
-    @Override
-    public void onViewCreated(@NonNull View v, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(v, savedInstanceState);
-        TextView textView = v.findViewById(R.id.text);
-        textView.setText(NetworkUtils.getNetworkInterfaceSummary());
-    }
+	@Override
+	public void onViewCreated(@NonNull View v,
+			@Nullable Bundle savedInstanceState) {
+		super.onViewCreated(v, savedInstanceState);
+		TextView textView = v.findViewById(R.id.text);
+		textView.setText(NetworkUtils.getNetworkInterfaceSummary());
+	}
 
 }

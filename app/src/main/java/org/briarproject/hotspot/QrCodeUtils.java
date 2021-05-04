@@ -21,7 +21,8 @@ class QrCodeUtils {
 
 	private static String TAG = QrCodeUtils.class.getName();
 
-	static String createWifiLoginString(String ssid, String password, boolean hidden) {
+	static String createWifiLoginString(String ssid, String password,
+			boolean hidden) {
 		// https://en.wikipedia.org/wiki/QR_code#WiFi_network_login
 		return "WIFI:S:" + ssid + ";P:" + password + ";T:WPA;H:" + hidden;
 	}
@@ -32,7 +33,8 @@ class QrCodeUtils {
 		int largestDimen = max(dm.widthPixels, dm.heightPixels);
 		int size = min(smallestDimen, largestDimen / 2);
 		try {
-			BitMatrix encoded = new QRCodeWriter().encode(input, QR_CODE, size, size);
+			BitMatrix encoded =
+					new QRCodeWriter().encode(input, QR_CODE, size, size);
 			return renderQrCode(encoded);
 		} catch (WriterException e) {
 			Log.w(TAG, e);
