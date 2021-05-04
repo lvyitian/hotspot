@@ -18,10 +18,12 @@ import androidx.activity.result.contract.ActivityResultContracts.StartActivityFo
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
+import static org.briarproject.hotspot.HotspotManager.UNKNOWN_FREQUENCY;
 import static org.briarproject.hotspot.QrCodeUtils.createQrCode;
 import static org.briarproject.hotspot.QrCodeUtils.createWifiLoginString;
 
@@ -69,7 +71,7 @@ public class HotspotFragment extends Fragment {
 		serverButton = v.findViewById(R.id.serverButton);
 		serverButton.setOnClickListener(this::onServerButtonClick);
 
-		viewModel.getWifiConfiguration()
+		viewModel.getHotSpotManager().getWifiConfiguration()
 				.observe(getViewLifecycleOwner(), config -> {
 					if (config == null) {
 						qrCode.setVisibility(GONE);
@@ -99,8 +101,66 @@ public class HotspotFragment extends Fragment {
 					}
 				});
 
-		viewModel.getStatus().observe(getViewLifecycleOwner(),
-				status -> statusView.setText(status));
+		viewModel.getIs5GhzSupported().observe(getViewLifecycleOwner(),
+				b -> statusView
+						.setText(getString(R.string.wifi_5ghz_supported)));
+		viewModel.getHotSpotManager().getStatus()
+				.observe(getViewLifecycleOwner(), state -> {
+					switch (state) {
+						case NO_WIFI_DIRECT:
+							statusView.setText(
+									getString(R.string.no_wifi_direct));
+							break;
+						case P2P_ERROR:
+							statusView.setText(
+									getString(R.string.callback_failed,
+											"p2p error"));
+							break;
+						case P2P_P2P_UNSUPPORTED:
+							statusView.setText(
+									getString(R.string.callback_failed,
+											"p2p unsupported"));
+							break;
+						case P2P_NO_SERVICE_REQUESTS:
+							statusView.setText(
+									getString(R.string.callback_failed,
+											"no service requests"));
+							break;
+						case STARTING_HOTSPOT:
+							statusView.setText(
+									getString(R.string.starting_hotspot));
+							break;
+						case CALLBACK_STARTED:
+							LiveData<Double> frequency =
+									viewModel.getHotSpotManager()
+											.getFrequency();
+							if (frequency.getValue() != null) {
+								double freq = frequency.getValue();
+								if (freq == UNKNOWN_FREQUENCY)
+									statusView.setText(getString(
+											R.string.callback_started));
+								else statusView.setText(getString(
+										R.string.callback_started_freq, freq));
+							}
+							break;
+						case WAITING_TO_START_HOTSPOT:
+							statusView.setText(
+									getString(R.string.callback_waiting));
+							break;
+						case HOTSPOT_STOPPED:
+							statusView.setText(
+									getString(R.string.hotspot_stopped));
+							break;
+						case PERMISSION_DENIED:
+							statusView.setText(getString(
+									R.string.callback_permission_denied));
+							break;
+						case NO_GROUP_INFO:
+							statusView.setText(
+									getString(R.string.callback_no_group_info));
+							break;
+					}
+				});
 
 		viewModel.getWebServerState()
 				.observe(getViewLifecycleOwner(), state -> {
@@ -123,7 +183,7 @@ public class HotspotFragment extends Fragment {
 	public void onButtonClick(View view) {
 		if (hotspotStarted) {
 			button.setEnabled(false);
-			viewModel.stopWifiP2pHotspot();
+			viewModel.getHotSpotManager().stopWifiP2pHotspot();
 		} else {
 			conditionManager.startConditionChecks();
 		}
