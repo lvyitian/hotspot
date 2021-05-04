@@ -1,5 +1,17 @@
 <resources>
 	<string name="app_name">Offline Hotspot</string>
+
+	<string name="ok">OK</string>
+	<string name="cancel">Cancel</string>
+	<string name="continue_button">Continue</string>
+
+	<string name="permission_location_title">Location permission</string>
+	<string name="permission_hotspot_location_request_body">To create a Wi-Fi hotspot, Briar needs permission to access your location.\n\nBriar does not store your location or share it with anyone.</string>
+	<string name="permission_hotspot_location_denied_body">You have denied access to your location, but Briar needs this permission to create a Wi-Fi hotspot.\n\nPlease consider granting access.</string>
+	<string name="wifi_settings_title">Wi-Fi setting</string>
+	<string name="wifi_settings_request_enable_body">To create a Wi-Fi hotspot, Briar needs to use Wi-Fi. Please enable it.</string>
+	<string name="wifi_settings_request_denied_body">You have denied to enable Wi-Fi, but Briar needs to use Wi-Fi.\n\nPlease consider enabling it.</string>
+
 	<string name="menu_interfaces">Network interfaces</string>
 	<string name="start_hotspot">Start hotspot</string>
 	<string name="stop_hotspot">Stop hotspot</string>
@@ -15,7 +27,6 @@
 	<string name="qr_code_description">QR code with Wi-Fi login details</string>
 	<string name="no_wifi_manager">Device does not support Wi-Fi</string>
 	<string name="no_wifi_direct">Device does not support Wi-Fi Direct</string>
-	<string name="no_wifi_enabled">Wi-Fi setting is disabled</string>
 	<string name="wifi_5ghz_supported">5Ghz Wi-Fi is supported</string>
 	<string name="callback_permission_denied">Location permission was denied</string>
 	<string name="connected">Peer connected</string>
