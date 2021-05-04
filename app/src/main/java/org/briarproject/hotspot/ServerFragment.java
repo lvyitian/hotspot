@@ -25,7 +25,7 @@ import static org.briarproject.hotspot.QrCodeUtils.createQrCode;
 
 public class ServerFragment extends Fragment {
 
-	private static String TAG = ServerFragment.class.getName();
+	private static final String TAG = ServerFragment.class.getName();
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
