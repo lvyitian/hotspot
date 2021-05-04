@@ -25,8 +25,7 @@ class StringUtils {
 		return new String(c);
 	}
 
-	private static char random(String universe)
-	{
+	private static char random(String universe) {
 		return universe.charAt(random.nextInt(universe.length()));
 	}
 

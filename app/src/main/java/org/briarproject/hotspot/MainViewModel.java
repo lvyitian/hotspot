@@ -12,14 +12,14 @@ import android.net.wifi.p2p.WifiP2pManager.GroupInfoListener;
 import android.os.Handler;
 import android.util.Log;
 
+import java.io.IOException;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-
-import java.io.IOException;
 
 import static android.content.Context.WIFI_P2P_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
@@ -33,10 +33,11 @@ public class MainViewModel extends AndroidViewModel {
 
 	private static final int MAX_GROUP_INFO_ATTEMPTS = 5;
 
-	private final MutableLiveData<NetworkConfig> config = new MutableLiveData<>();
+	private final MutableLiveData<NetworkConfig> config =
+			new MutableLiveData<>();
 	private final MutableLiveData<String> status = new MutableLiveData<>();
 	private final MutableLiveData<WebServerState> webServerState =
-            new MutableLiveData<>(WebServerState.STOPPED);
+			new MutableLiveData<>(WebServerState.STOPPED);
 
 	private final Application app;
 	private final String lockTag;
@@ -48,19 +49,20 @@ public class MainViewModel extends AndroidViewModel {
 	private WifiLock wifiLock;
 	private Channel channel;
 
-    public MainViewModel(@NonNull Application application) {
-        super(application);
-        app = application;
-        lockTag = app.getString(R.string.app_name);
-        wifiManager = (WifiManager) app.getSystemService(WIFI_SERVICE);
-        wifiP2pManager = (WifiP2pManager) app.getSystemService(WIFI_P2P_SERVICE);
-        handler = new Handler(app.getMainLooper());
-        webServer = new WebServer(app);
+	public MainViewModel(@NonNull Application application) {
+		super(application);
+		app = application;
+		lockTag = app.getString(R.string.app_name);
+		wifiManager = (WifiManager) app.getSystemService(WIFI_SERVICE);
+		wifiP2pManager =
+				(WifiP2pManager) app.getSystemService(WIFI_P2P_SERVICE);
+		handler = new Handler(app.getMainLooper());
+		webServer = new WebServer(app);
 
-        if (SDK_INT >= 21 && wifiManager.is5GHzBandSupported()) {
-	        status.setValue(app.getString(R.string.wifi_5ghz_supported));
-        }
-    }
+		if (SDK_INT >= 21 && wifiManager.is5GHzBandSupported()) {
+			status.setValue(app.getString(R.string.wifi_5ghz_supported));
+		}
+	}
 
 	LiveData<NetworkConfig> getWifiConfiguration() {
 		return config;
@@ -80,11 +82,11 @@ public class MainViewModel extends AndroidViewModel {
 	}
 
 	void startWifiP2pHotspot() {
-    	if (!wifiManager.isWifiEnabled() && !wifiManager.setWifiEnabled(true)) {
-    		// TODO wait for Wi-Fi to become enabled before proceeding here
-		    status.setValue(app.getString(R.string.no_wifi_enabled));
-		    return;
-	    }
+		if (!wifiManager.isWifiEnabled() && !wifiManager.setWifiEnabled(true)) {
+			// TODO wait for Wi-Fi to become enabled before proceeding here
+			status.setValue(app.getString(R.string.no_wifi_enabled));
+			return;
+		}
 		if (wifiP2pManager == null) {
 			status.setValue(app.getString(R.string.no_wifi_direct));
 			return;
@@ -96,8 +98,8 @@ public class MainViewModel extends AndroidViewModel {
 			return;
 		}
 		acquireLock();
-		String networkName = SDK_INT >= 29 ? "DIRECT-" + getRandomString(2) + "-" +
-				getRandomString(10) : null;
+		String networkName = SDK_INT >= 29 ? "DIRECT-"
+				+ getRandomString(2) + "-" + getRandomString(10) : null;
 		ActionListener listener = new ActionListener() {
 
 			@Override
@@ -108,8 +110,10 @@ public class MainViewModel extends AndroidViewModel {
 
 			@Override
 			public void onFailure(int reason) {
-				if (reason == 2) requestGroupInfo(1, networkName); // Hotspot already running
-				else releaseWifiP2pHotspot(app.getString(R.string.callback_failed, reason));
+				if (reason == 2)
+					requestGroupInfo(1, networkName); // Hotspot already running
+				else releaseWifiP2pHotspot(
+						app.getString(R.string.callback_failed, reason));
 			}
 		};
 		try {
@@ -120,14 +124,14 @@ public class MainViewModel extends AndroidViewModel {
 				WifiP2pConfig config = new WifiP2pConfig.Builder()
 						.setGroupOperatingBand(GROUP_OWNER_BAND_2GHZ)
 						.setNetworkName(networkName)
-						.setPassphrase(passphrase)
-						.build();
+						.setPassphrase(passphrase).build();
 				wifiP2pManager.createGroup(channel, config, listener);
 			} else {
 				wifiP2pManager.createGroup(channel, listener);
 			}
 		} catch (SecurityException e) {
-			releaseWifiP2pHotspot(app.getString(R.string.callback_permission_denied));
+			releaseWifiP2pHotspot(
+					app.getString(R.string.callback_permission_denied));
 		}
 	}
 
@@ -137,41 +141,50 @@ public class MainViewModel extends AndroidViewModel {
 			boolean retry = false;
 			if (group == null) retry = true;
 			else if (!group.getNetworkName().startsWith("DIRECT-") ||
-					(networkName != null && !networkName.equals(group.getNetworkName()))) {
+					(networkName != null &&
+							!networkName.equals(group.getNetworkName()))) {
 				// we only retry if we have attempts left, otherwise we try what we got
 				if (attempt < MAX_GROUP_INFO_ATTEMPTS) retry = true;
-				Log.e("TEST", "received networkName: " + group.getNetworkName());
+				Log.e("TEST",
+						"received networkName: " + group.getNetworkName());
 				Log.e("TEST", "received passphrase: " + group.getPassphrase());
 			}
 			if (retry) {
 				// On some devices we need to wait for the group info to become available
 				if (attempt < MAX_GROUP_INFO_ATTEMPTS) {
-					handler.postDelayed(() -> requestGroupInfo(attempt + 1, networkName), 1000);
+					handler.postDelayed(
+							() -> requestGroupInfo(attempt + 1, networkName),
+							1000);
 				} else {
-					releaseWifiP2pHotspot(app.getString(R.string.callback_no_group_info));
+					releaseWifiP2pHotspot(
+							app.getString(R.string.callback_no_group_info));
 				}
 			} else {
-				config.setValue(new NetworkConfig(group.getNetworkName(), group.getPassphrase(),
+				config.setValue(new NetworkConfig(group.getNetworkName(),
+						group.getPassphrase(),
 						true));
 				if (SDK_INT >= 29) {
 					double freq = ((double) group.getFrequency()) / 1000;
-					status.setValue(app.getString(R.string.callback_started_freq, freq));
+					status.setValue(
+							app.getString(R.string.callback_started_freq,
+									freq));
 				} else {
 					status.setValue(app.getString(R.string.callback_started));
 				}
-                startWebServer();
+				startWebServer();
 			}
 		};
 		try {
 			wifiP2pManager.requestGroupInfo(channel, listener);
 		} catch (SecurityException e) {
-			releaseWifiP2pHotspot(app.getString(R.string.callback_permission_denied));
+			releaseWifiP2pHotspot(
+					app.getString(R.string.callback_permission_denied));
 		}
 	}
 
 	private void releaseWifiP2pHotspot(String statusMessage) {
-        stopWebServer();
-        if (SDK_INT >= 27) channel.close();
+		stopWebServer();
+		if (SDK_INT >= 27) channel.close();
 		channel = null;
 		releaseLock();
 		config.setValue(null);
@@ -202,7 +215,8 @@ public class MainViewModel extends AndroidViewModel {
 	@SuppressLint("WakelockTimeout")
 	private void acquireLock() {
 		// WIFI_MODE_FULL has no effect on API >= 29
-		int lockType = SDK_INT >= 29 ? WIFI_MODE_FULL_HIGH_PERF : WIFI_MODE_FULL;
+		int lockType =
+				SDK_INT >= 29 ? WIFI_MODE_FULL_HIGH_PERF : WIFI_MODE_FULL;
 		wifiLock = wifiManager.createWifiLock(lockType, lockTag);
 		wifiLock.acquire();
 	}
@@ -212,21 +226,21 @@ public class MainViewModel extends AndroidViewModel {
 	}
 
 	private void startWebServer() {
-        try {
-            webServer.start();
-            webServerState.postValue(WebServerState.STARTED);
-        } catch (IOException e) {
-            e.printStackTrace();
-            webServerState.postValue(WebServerState.ERROR);
-        }
-    }
+		try {
+			webServer.start();
+			webServerState.postValue(WebServerState.STARTED);
+		} catch (IOException e) {
+			e.printStackTrace();
+			webServerState.postValue(WebServerState.ERROR);
+		}
+	}
 
-    private void stopWebServer() {
-        webServer.stop();
-        webServerState.postValue(WebServerState.STOPPED);
-    }
+	private void stopWebServer() {
+		webServer.stop();
+		webServerState.postValue(WebServerState.STOPPED);
+	}
 
-    enum WebServerState { STOPPED, STARTED, ERROR }
+	enum WebServerState {STOPPED, STARTED, ERROR}
 
 	static class NetworkConfig {
 
