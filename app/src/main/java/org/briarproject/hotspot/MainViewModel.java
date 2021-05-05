@@ -4,8 +4,8 @@ import android.app.Application;
 import android.net.wifi.WifiManager;
 
 import org.briarproject.hotspot.HotspotManager.HotspotState;
+import org.briarproject.hotspot.WebServerManager.WebServerState;
 
-import java.io.IOException;
 import java.util.logging.Logger;
 
 import androidx.annotation.NonNull;
@@ -25,16 +25,14 @@ public class MainViewModel extends AndroidViewModel
 
 	private final MutableLiveData<Boolean> is5GhzSupported =
 			new MutableLiveData<>(false);
-	private final MutableLiveData<WebServerState> webServerState =
-			new MutableLiveData<>(WebServerState.STOPPED);
 
 	private final HotspotManager hotSpotManager;
-	private final WebServer webServer;
+	private final WebServerManager webServerManager;
 
 	public MainViewModel(@NonNull Application app) {
 		super(app);
 		hotSpotManager = new HotspotManager(app);
-		webServer = new WebServer(app);
+		webServerManager = new WebServerManager(app);
 
 		if (SDK_INT >= 21) {
 			WifiManager wifiManager =
@@ -52,7 +50,7 @@ public class MainViewModel extends AndroidViewModel
 	}
 
 	LiveData<WebServerState> getWebServerState() {
-		return webServerState;
+		return webServerManager.getWebServerState();
 	}
 
 	HotspotManager getHotSpotManager() {
@@ -69,35 +67,18 @@ public class MainViewModel extends AndroidViewModel
 		hotSpotManager.stopWifiP2pHotspot();
 	}
 
-	private void startWebServer() {
-		try {
-			webServer.start();
-			webServerState.postValue(WebServerState.STARTED);
-		} catch (IOException e) {
-			e.printStackTrace();
-			webServerState.postValue(WebServerState.ERROR);
-		}
-	}
-
-	private void stopWebServer() {
-		webServer.stop();
-		webServerState.postValue(WebServerState.STOPPED);
-	}
-
 	@Override
 	public void onChanged(HotspotState state) {
 		switch (state) {
 			case HOTSPOT_STARTED:
 				LOG.info("starting webserver");
-				startWebServer();
+				webServerManager.startWebServer();
 				break;
 			case HOTSPOT_STOPPED:
 				LOG.info("stopping webserver");
-				stopWebServer();
+				webServerManager.stopWebServer();
 				break;
 		}
 	}
-
-	enum WebServerState {STOPPED, STARTED, ERROR}
 
 }

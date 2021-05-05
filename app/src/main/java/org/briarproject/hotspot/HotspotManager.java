@@ -37,7 +37,7 @@ import static org.briarproject.hotspot.HotspotManager.HotspotState.STARTING_HOTS
 import static org.briarproject.hotspot.HotspotManager.HotspotState.WAITING_TO_START_HOTSPOT;
 import static org.briarproject.hotspot.StringUtils.getRandomString;
 
-public class HotspotManager {
+class HotspotManager {
 
 	private static final Logger LOG = getLogger(HotspotManager.class.getName());
 
@@ -79,7 +79,7 @@ public class HotspotManager {
 	private WifiManager.WifiLock wifiLock;
 	private WifiP2pManager.Channel channel;
 
-	public HotspotManager(Context context) {
+	HotspotManager(Context context) {
 		this.context = context;
 		wifiManager = (WifiManager) context.getApplicationContext()
 				.getSystemService(WIFI_SERVICE);
