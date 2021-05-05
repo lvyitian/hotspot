@@ -77,9 +77,6 @@ public class HotspotFragment extends Fragment {
 						qrCode.setVisibility(GONE);
 						ssidView.setText("");
 						passwordView.setText("");
-						button.setText(R.string.start_hotspot);
-						button.setEnabled(true);
-						hotspotStarted = false;
 					} else {
 						String qrCodeText = createWifiLoginString(config.ssid,
 								config.password, config.hidden);
@@ -95,9 +92,6 @@ public class HotspotFragment extends Fragment {
 						ssidView.setText(getString(R.string.ssid, config.ssid));
 						passwordView.setText(
 								getString(R.string.password, config.password));
-						button.setText(R.string.stop_hotspot);
-						button.setEnabled(true);
-						hotspotStarted = true;
 					}
 				});
 
@@ -149,7 +143,15 @@ public class HotspotFragment extends Fragment {
 							statusView.setText(
 									getString(R.string.starting_hotspot));
 							break;
+						case WAITING_TO_START_HOTSPOT:
+							statusView.setText(
+									getString(R.string.callback_waiting));
+							break;
 						case HOTSPOT_STARTED:
+							button.setText(R.string.stop_hotspot);
+							button.setEnabled(true);
+							hotspotStarted = true;
+
 							LiveData<Double> frequency = viewModel
 									.getHotSpotManager().getFrequency();
 							if (frequency.getValue() != null) {
@@ -161,11 +163,11 @@ public class HotspotFragment extends Fragment {
 										R.string.callback_started_freq, freq));
 							}
 							break;
-						case WAITING_TO_START_HOTSPOT:
-							statusView.setText(
-									getString(R.string.callback_waiting));
-							break;
 						case HOTSPOT_STOPPED:
+							button.setText(R.string.start_hotspot);
+							button.setEnabled(true);
+							hotspotStarted = false;
+
 							statusView.setText(
 									getString(R.string.hotspot_stopped));
 							break;
