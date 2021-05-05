@@ -2,19 +2,27 @@ package org.briarproject.hotspot;
 
 import android.content.Context;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 
 import fi.iki.elonen.NanoHTTPD;
 
+import static android.util.Xml.Encoding.UTF_8;
+import static fi.iki.elonen.NanoHTTPD.Response.Status.INTERNAL_ERROR;
 import static fi.iki.elonen.NanoHTTPD.Response.Status.NOT_FOUND;
 import static fi.iki.elonen.NanoHTTPD.Response.Status.OK;
+import static org.briarproject.hotspot.BuildConfig.VERSION_NAME;
 
 public class WebServer extends NanoHTTPD {
 
 	final static int PORT = 9999;
+	private static final String FILE_HTML = "hotspot.html";
 
 	private final Context ctx;
 
@@ -32,12 +40,40 @@ public class WebServer extends NanoHTTPD {
 		if (session.getUri().endsWith("app.apk")) {
 			return serveApk();
 		} else {
-			String msg = "<html><body><h1>Download Offline Hotspot App</h1>\n";
-			msg += "<h2><a href=\"/app.apk\">Click here to download</a></h2>";
-			msg +=
-					"After download is complete, open the downloaded file and install it.";
-			return newFixedLengthResponse(msg + "</body></html>\n");
+			Response res;
+			try {
+				res = newFixedLengthResponse(OK, MIME_HTML, getHtml());
+			} catch (Exception e) {
+				e.printStackTrace();
+				res = newFixedLengthResponse(INTERNAL_ERROR, MIME_PLAINTEXT,
+						INTERNAL_ERROR.getDescription());
+			}
+			return res;
 		}
+	}
+
+	private String getHtml() throws Exception {
+		Document doc;
+		try (InputStream is = ctx.getAssets().open(FILE_HTML)) {
+			doc = Jsoup.parse(is, UTF_8.name(), "");
+		}
+		String app = ctx.getString(R.string.app_name);
+		String appV = app + " " + VERSION_NAME;
+		doc.select("#download_title").first()
+				.text(ctx.getString(R.string.website_download_title, appV));
+		doc.select("#download_intro").first()
+				.text(ctx.getString(R.string.website_download_intro, app));
+		doc.select("#download_button").first()
+				.text(ctx.getString(R.string.website_download_title, app));
+		doc.select("#download_outro").first()
+				.text(ctx.getString(R.string.website_download_outro));
+		doc.select("#troubleshooting_title").first()
+				.text(ctx.getString(R.string.website_troubleshooting_title));
+		doc.select("#troubleshooting_1").first()
+				.text(ctx.getString(R.string.website_troubleshooting_1));
+		doc.select("#troubleshooting_2").first()
+				.text(ctx.getString(R.string.website_troubleshooting_2));
+		return doc.outerHtml();
 	}
 
 	private Response serveApk() {
