@@ -1,5 +1,6 @@
 package org.briarproject.hotspot;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -11,6 +12,9 @@ import android.widget.TextView;
 
 import org.briarproject.hotspot.MainViewModel.WebServerState;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission;
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -24,16 +28,30 @@ import static org.briarproject.hotspot.QrCodeUtils.createWifiLoginString;
 public class HotspotFragment extends Fragment {
 
 	private MainViewModel viewModel;
+	private ConditionManager conditionManager;
 	private ImageView qrCode;
 	private TextView ssidView, passwordView, statusView;
 	private Button button, serverButton;
 	private boolean hotspotStarted = false;
+
+	private final ActivityResultLauncher<String> locationRequest =
+			registerForActivityResult(new RequestPermission(), granted -> {
+				conditionManager.onRequestPermissionResult(granted);
+				startWifiP2pHotspot();
+			});
+	private final ActivityResultLauncher<Intent> wifiRequest =
+			registerForActivityResult(new StartActivityForResult(), result -> {
+				conditionManager.onRequestWifiEnabledResult();
+				startWifiP2pHotspot();
+			});
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState) {
 		viewModel = new ViewModelProvider(requireActivity())
 				.get(MainViewModel.class);
+		conditionManager = new ConditionManager(requireActivity(),
+				locationRequest, wifiRequest);
 		return inflater.inflate(R.layout.fragment_hotspot, container, false);
 	}
 
@@ -96,10 +114,26 @@ public class HotspotFragment extends Fragment {
 				});
 	}
 
+	@Override
+	public void onStart() {
+		super.onStart();
+		conditionManager.resetPermissions();
+	}
+
 	public void onButtonClick(View view) {
-		button.setEnabled(false);
-		if (hotspotStarted) viewModel.stopWifiP2pHotspot();
-		else viewModel.startWifiP2pHotspot();
+		if (hotspotStarted) {
+			button.setEnabled(false);
+			viewModel.stopWifiP2pHotspot();
+		} else {
+			conditionManager.startConditionChecks();
+		}
+	}
+
+	private void startWifiP2pHotspot() {
+		if (conditionManager.checkAndRequestConditions()) {
+			button.setEnabled(false);
+			viewModel.startWifiP2pHotspot();
+		}
 	}
 
 	public void onServerButtonClick(View view) {
