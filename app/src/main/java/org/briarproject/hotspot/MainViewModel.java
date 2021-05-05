@@ -2,20 +2,26 @@ package org.briarproject.hotspot;
 
 import android.app.Application;
 import android.net.wifi.WifiManager;
-import android.util.Log;
+
+import org.briarproject.hotspot.HotspotManager.HotspotState;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 import static android.content.Context.WIFI_SERVICE;
 import static android.os.Build.VERSION.SDK_INT;
-import static org.briarproject.hotspot.HotspotManager.HotspotListener;
+import static java.util.logging.Logger.getLogger;
 
-public class MainViewModel extends AndroidViewModel implements HotspotListener {
+public class MainViewModel extends AndroidViewModel
+		implements Observer<HotspotState> {
+
+	private static final Logger LOG = getLogger(MainViewModel.class.getName());
 
 	private final MutableLiveData<Boolean> is5GhzSupported =
 			new MutableLiveData<>(false);
@@ -27,7 +33,7 @@ public class MainViewModel extends AndroidViewModel implements HotspotListener {
 
 	public MainViewModel(@NonNull Application app) {
 		super(app);
-		hotSpotManager = new HotspotManager(app, this);
+		hotSpotManager = new HotspotManager(app);
 		webServer = new WebServer(app);
 
 		if (SDK_INT >= 21) {
@@ -37,6 +43,8 @@ public class MainViewModel extends AndroidViewModel implements HotspotListener {
 				is5GhzSupported.setValue(true);
 			}
 		}
+
+		hotSpotManager.getStatus().observeForever(this);
 	}
 
 	LiveData<Boolean> getIs5GhzSupported() {
@@ -57,6 +65,7 @@ public class MainViewModel extends AndroidViewModel implements HotspotListener {
 
 	@Override
 	protected void onCleared() {
+		hotSpotManager.getStatus().removeObserver(this);
 		hotSpotManager.stopWifiP2pHotspot();
 	}
 
@@ -76,15 +85,17 @@ public class MainViewModel extends AndroidViewModel implements HotspotListener {
 	}
 
 	@Override
-	public void connected() {
-		Log.e("TEST", "starting webserver");
-		startWebServer();
-	}
-
-	@Override
-	public void disconnected() {
-		Log.e("TEST", "stopping webserver");
-		stopWebServer();
+	public void onChanged(HotspotState state) {
+		switch (state) {
+			case HOTSPOT_STARTED:
+				LOG.info("starting webserver");
+				startWebServer();
+				break;
+			case HOTSPOT_STOPPED:
+				LOG.info("stopping webserver");
+				stopWebServer();
+				break;
+		}
 	}
 
 	enum WebServerState {STOPPED, STARTED, ERROR}

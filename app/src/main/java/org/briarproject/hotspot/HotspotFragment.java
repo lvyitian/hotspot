@@ -104,9 +104,14 @@ public class HotspotFragment extends Fragment {
 		viewModel.getIs5GhzSupported().observe(getViewLifecycleOwner(),
 				b -> statusView
 						.setText(getString(R.string.wifi_5ghz_supported)));
-		viewModel.getHotSpotManager().getStatus()
-				.observe(getViewLifecycleOwner(), state -> {
-					switch (state) {
+
+		viewModel.getHotSpotManager().getError()
+				.observe(getViewLifecycleOwner(), error -> {
+					if (error == null) {
+						statusView.setText(getString(R.string.hotspot_stopped));
+						return;
+					}
+					switch (error) {
 						case NO_WIFI_DIRECT:
 							statusView.setText(
 									getString(R.string.no_wifi_direct));
@@ -126,14 +131,27 @@ public class HotspotFragment extends Fragment {
 									getString(R.string.callback_failed,
 											"no service requests"));
 							break;
+						case PERMISSION_DENIED:
+							statusView.setText(getString(
+									R.string.callback_permission_denied));
+							break;
+						case NO_GROUP_INFO:
+							statusView.setText(
+									getString(R.string.callback_no_group_info));
+							break;
+					}
+				});
+
+		viewModel.getHotSpotManager().getStatus()
+				.observe(getViewLifecycleOwner(), state -> {
+					switch (state) {
 						case STARTING_HOTSPOT:
 							statusView.setText(
 									getString(R.string.starting_hotspot));
 							break;
-						case CALLBACK_STARTED:
-							LiveData<Double> frequency =
-									viewModel.getHotSpotManager()
-											.getFrequency();
+						case HOTSPOT_STARTED:
+							LiveData<Double> frequency = viewModel
+									.getHotSpotManager().getFrequency();
 							if (frequency.getValue() != null) {
 								double freq = frequency.getValue();
 								if (freq == UNKNOWN_FREQUENCY)
@@ -150,14 +168,6 @@ public class HotspotFragment extends Fragment {
 						case HOTSPOT_STOPPED:
 							statusView.setText(
 									getString(R.string.hotspot_stopped));
-							break;
-						case PERMISSION_DENIED:
-							statusView.setText(getString(
-									R.string.callback_permission_denied));
-							break;
-						case NO_GROUP_INFO:
-							statusView.setText(
-									getString(R.string.callback_no_group_info));
 							break;
 					}
 				});
