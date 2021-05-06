@@ -10,6 +10,11 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.briarproject.hotspot.HotspotState.HotspotStarted;
+import org.briarproject.hotspot.HotspotState.HotspotStopped;
+import org.briarproject.hotspot.HotspotState.NetworkConfig;
+import org.briarproject.hotspot.HotspotState.StartingHotspot;
+import org.briarproject.hotspot.HotspotState.WaitingToStartHotspot;
 import org.briarproject.hotspot.WebServerManager.WebServerState;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -18,7 +23,6 @@ import androidx.activity.result.contract.ActivityResultContracts.StartActivityFo
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 
 import static android.view.View.GONE;
@@ -71,106 +75,22 @@ public class HotspotFragment extends Fragment {
 		serverButton = v.findViewById(R.id.serverButton);
 		serverButton.setOnClickListener(this::onServerButtonClick);
 
-		viewModel.getHotSpotManager().getWifiConfiguration()
-				.observe(getViewLifecycleOwner(), config -> {
-					if (config == null) {
-						qrCode.setVisibility(GONE);
-						ssidView.setText("");
-						passwordView.setText("");
-					} else {
-						String qrCodeText = createWifiLoginString(config.ssid,
-								config.password, config.hidden);
-						Bitmap qrCodeBitmap =
-								createQrCode(getResources().getDisplayMetrics(),
-										qrCodeText);
-						if (qrCodeBitmap == null) {
-							qrCode.setVisibility(GONE);
-						} else {
-							qrCode.setImageBitmap(qrCodeBitmap);
-							qrCode.setVisibility(VISIBLE);
-						}
-						ssidView.setText(getString(R.string.ssid, config.ssid));
-						passwordView.setText(
-								getString(R.string.password, config.password));
-					}
-				});
-
 		viewModel.getIs5GhzSupported().observe(getViewLifecycleOwner(),
 				b -> statusView
 						.setText(getString(R.string.wifi_5ghz_supported)));
 
-		viewModel.getHotSpotManager().getError()
-				.observe(getViewLifecycleOwner(), error -> {
-					if (error == null) {
-						statusView.setText(getString(R.string.hotspot_stopped));
-						return;
-					}
-					switch (error) {
-						case NO_WIFI_DIRECT:
-							statusView.setText(
-									getString(R.string.no_wifi_direct));
-							break;
-						case P2P_ERROR:
-							statusView.setText(
-									getString(R.string.callback_failed,
-											"p2p error"));
-							break;
-						case P2P_P2P_UNSUPPORTED:
-							statusView.setText(
-									getString(R.string.callback_failed,
-											"p2p unsupported"));
-							break;
-						case P2P_NO_SERVICE_REQUESTS:
-							statusView.setText(
-									getString(R.string.callback_failed,
-											"no service requests"));
-							break;
-						case PERMISSION_DENIED:
-							statusView.setText(getString(
-									R.string.callback_permission_denied));
-							break;
-						case NO_GROUP_INFO:
-							statusView.setText(
-									getString(R.string.callback_no_group_info));
-							break;
-					}
-				});
-
-		viewModel.getHotSpotManager().getStatus()
+		viewModel.getHotspotManager().getStatus()
 				.observe(getViewLifecycleOwner(), state -> {
-					switch (state) {
-						case STARTING_HOTSPOT:
-							statusView.setText(
-									getString(R.string.starting_hotspot));
-							break;
-						case WAITING_TO_START_HOTSPOT:
-							statusView.setText(
-									getString(R.string.callback_waiting));
-							break;
-						case HOTSPOT_STARTED:
-							button.setText(R.string.stop_hotspot);
-							button.setEnabled(true);
-							hotspotStarted = true;
-
-							LiveData<Double> frequency = viewModel
-									.getHotSpotManager().getFrequency();
-							if (frequency.getValue() != null) {
-								double freq = frequency.getValue();
-								if (freq == UNKNOWN_FREQUENCY)
-									statusView.setText(getString(
-											R.string.callback_started));
-								else statusView.setText(getString(
-										R.string.callback_started_freq, freq));
-							}
-							break;
-						case HOTSPOT_STOPPED:
-							button.setText(R.string.start_hotspot);
-							button.setEnabled(true);
-							hotspotStarted = false;
-
-							statusView.setText(
-									getString(R.string.hotspot_stopped));
-							break;
+					if (state instanceof StartingHotspot) {
+						statusView.setText(
+								getString(R.string.starting_hotspot));
+					} else if (state instanceof WaitingToStartHotspot) {
+						statusView.setText(
+								getString(R.string.callback_waiting));
+					} else if (state instanceof HotspotStarted) {
+						hotspotStarted((HotspotStarted) state);
+					} else if (state instanceof HotspotStopped) {
+						hotspotStopped((HotspotStopped) state);
 					}
 				});
 
@@ -186,6 +106,80 @@ public class HotspotFragment extends Fragment {
 				});
 	}
 
+	private void hotspotStarted(HotspotStarted state) {
+		button.setText(R.string.stop_hotspot);
+		button.setEnabled(true);
+		hotspotStarted = true;
+
+		NetworkConfig config = state.getConfig();
+
+		if (config.frequency == UNKNOWN_FREQUENCY)
+			statusView.setText(getString(R.string.callback_started));
+		else
+			statusView.setText(getString(R.string.callback_started_freq,
+					config.frequency));
+
+		if (config == null) {
+			qrCode.setVisibility(GONE);
+			ssidView.setText("");
+			passwordView.setText("");
+		} else {
+			String qrCodeText = createWifiLoginString(config.ssid,
+					config.password);
+			// TODO: heavy operation should be handed off to worker thread,
+			//  potentially within the view model and provide it together
+			//  with NetworkConfig?
+			Bitmap qrCodeBitmap = createQrCode(
+					getResources().getDisplayMetrics(), qrCodeText);
+			if (qrCodeBitmap == null) {
+				qrCode.setVisibility(GONE);
+			} else {
+				qrCode.setImageBitmap(qrCodeBitmap);
+				qrCode.setVisibility(VISIBLE);
+			}
+			ssidView.setText(getString(R.string.ssid, config.ssid));
+			passwordView.setText(
+					getString(R.string.password, config.password));
+		}
+	}
+
+	private void hotspotStopped(HotspotStopped state) {
+		button.setText(R.string.start_hotspot);
+		button.setEnabled(true);
+		hotspotStarted = false;
+
+		statusView.setText(
+				getString(R.string.hotspot_stopped));
+		if (state.hasError()) {
+			switch (state.getError()) {
+				case NO_WIFI_DIRECT:
+					statusView.setText(getString(R.string.no_wifi_direct));
+					break;
+				case P2P_ERROR:
+					statusView.setText(getString(R.string.callback_failed,
+							"p2p error"));
+					break;
+				case P2P_P2P_UNSUPPORTED:
+					statusView.setText(getString(R.string.callback_failed,
+							"p2p unsupported"));
+					break;
+				case P2P_NO_SERVICE_REQUESTS:
+					statusView.setText(
+							getString(R.string.callback_failed,
+									"no service requests"));
+					break;
+				case PERMISSION_DENIED:
+					statusView.setText(
+							getString(R.string.callback_permission_denied));
+					break;
+				case NO_GROUP_INFO:
+					statusView.setText(getString(
+							R.string.callback_no_group_info));
+					break;
+			}
+		}
+	}
+
 	@Override
 	public void onStart() {
 		super.onStart();
@@ -195,7 +189,7 @@ public class HotspotFragment extends Fragment {
 	public void onButtonClick(View view) {
 		if (hotspotStarted) {
 			button.setEnabled(false);
-			viewModel.getHotSpotManager().stopWifiP2pHotspot();
+			viewModel.getHotspotManager().stopWifiP2pHotspot();
 		} else {
 			conditionManager.startConditionChecks();
 		}

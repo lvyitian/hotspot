@@ -4,8 +4,16 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
+import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Handler;
+
+import org.briarproject.hotspot.HotspotState.HotspotError;
+import org.briarproject.hotspot.HotspotState.HotspotStarted;
+import org.briarproject.hotspot.HotspotState.HotspotStopped;
+import org.briarproject.hotspot.HotspotState.NetworkConfig;
+import org.briarproject.hotspot.HotspotState.StartingHotspot;
+import org.briarproject.hotspot.HotspotState.WaitingToStartHotspot;
 
 import java.util.logging.Logger;
 
@@ -23,18 +31,15 @@ import static android.net.wifi.p2p.WifiP2pManager.ERROR;
 import static android.net.wifi.p2p.WifiP2pManager.NO_SERVICE_REQUESTS;
 import static android.net.wifi.p2p.WifiP2pManager.P2P_UNSUPPORTED;
 import static android.os.Build.VERSION.SDK_INT;
+import static java.util.logging.Level.INFO;
 import static java.util.logging.Logger.getLogger;
-import static org.briarproject.hotspot.HotspotManager.HotspotError.NO_GROUP_INFO;
-import static org.briarproject.hotspot.HotspotManager.HotspotError.NO_WIFI_DIRECT;
-import static org.briarproject.hotspot.HotspotManager.HotspotError.OTHER;
-import static org.briarproject.hotspot.HotspotManager.HotspotError.P2P_ERROR;
-import static org.briarproject.hotspot.HotspotManager.HotspotError.P2P_NO_SERVICE_REQUESTS;
-import static org.briarproject.hotspot.HotspotManager.HotspotError.P2P_P2P_UNSUPPORTED;
-import static org.briarproject.hotspot.HotspotManager.HotspotError.PERMISSION_DENIED;
-import static org.briarproject.hotspot.HotspotManager.HotspotState.HOTSPOT_STARTED;
-import static org.briarproject.hotspot.HotspotManager.HotspotState.HOTSPOT_STOPPED;
-import static org.briarproject.hotspot.HotspotManager.HotspotState.STARTING_HOTSPOT;
-import static org.briarproject.hotspot.HotspotManager.HotspotState.WAITING_TO_START_HOTSPOT;
+import static org.briarproject.hotspot.HotspotState.HotspotError.NO_GROUP_INFO;
+import static org.briarproject.hotspot.HotspotState.HotspotError.NO_WIFI_DIRECT;
+import static org.briarproject.hotspot.HotspotState.HotspotError.OTHER;
+import static org.briarproject.hotspot.HotspotState.HotspotError.P2P_ERROR;
+import static org.briarproject.hotspot.HotspotState.HotspotError.P2P_NO_SERVICE_REQUESTS;
+import static org.briarproject.hotspot.HotspotState.HotspotError.P2P_P2P_UNSUPPORTED;
+import static org.briarproject.hotspot.HotspotState.HotspotError.PERMISSION_DENIED;
 import static org.briarproject.hotspot.StringUtils.getRandomString;
 
 class HotspotManager {
@@ -42,23 +47,6 @@ class HotspotManager {
 	private static final Logger LOG = getLogger(HotspotManager.class.getName());
 
 	private static final int MAX_GROUP_INFO_ATTEMPTS = 5;
-
-	enum HotspotState {
-		STARTING_HOTSPOT,
-		WAITING_TO_START_HOTSPOT,
-		HOTSPOT_STARTED,
-		HOTSPOT_STOPPED
-	}
-
-	enum HotspotError {
-		NO_WIFI_DIRECT,
-		P2P_ERROR,
-		P2P_P2P_UNSUPPORTED,
-		P2P_NO_SERVICE_REQUESTS,
-		PERMISSION_DENIED,
-		NO_GROUP_INFO,
-		OTHER
-	}
 
 	static final double UNKNOWN_FREQUENCY = Double.NEGATIVE_INFINITY;
 
@@ -72,9 +60,6 @@ class HotspotManager {
 			new MutableLiveData<>();
 	private final MutableLiveData<HotspotState> status =
 			new MutableLiveData<>();
-	private final MutableLiveData<HotspotError> error =
-			new MutableLiveData<>();
-	private final MutableLiveData<Double> frequency = new MutableLiveData<>();
 
 	private WifiManager.WifiLock wifiLock;
 	private WifiP2pManager.Channel channel;
@@ -93,40 +78,26 @@ class HotspotManager {
 		return status;
 	}
 
-	LiveData<HotspotError> getError() {
-		return error;
-	}
-
-	LiveData<Double> getFrequency() {
-		return frequency;
-	}
-
-	LiveData<NetworkConfig> getWifiConfiguration() {
-		return config;
-	}
-
 	void startWifiP2pHotspot() {
 		if (wifiP2pManager == null) {
-			error.setValue(NO_WIFI_DIRECT);
+			status.setValue(new HotspotStopped(NO_WIFI_DIRECT));
 			return;
 		}
-		status.setValue(STARTING_HOTSPOT);
+		status.setValue(new StartingHotspot());
 		channel = wifiP2pManager
 				.initialize(context, context.getMainLooper(), null);
 		if (channel == null) {
-			error.setValue(NO_WIFI_DIRECT);
+			status.setValue(new HotspotStopped(NO_WIFI_DIRECT));
 			return;
 		}
 		acquireLock();
-		String networkName =
-				SDK_INT >= 29 ? "DIRECT-" + getRandomString(2) + "-" +
-						getRandomString(10) : null;
+		String networkName = getNetworkName();
 		WifiP2pManager.ActionListener listener =
 				new WifiP2pManager.ActionListener() {
 
 					@Override
 					public void onSuccess() {
-						status.setValue(WAITING_TO_START_HOTSPOT);
+						status.setValue(new WaitingToStartHotspot());
 						requestGroupInfo(1, networkName);
 					}
 
@@ -146,9 +117,8 @@ class HotspotManager {
 				};
 		try {
 			if (SDK_INT >= 29) {
-				String passphrase = getRandomString(8);
+				String passphrase = getPassphrase();
 				LOG.info("networkName: " + networkName);
-				LOG.info("passphrase: " + passphrase);
 				WifiP2pConfig config = new WifiP2pConfig.Builder()
 						.setGroupOperatingBand(GROUP_OWNER_BAND_2GHZ)
 						.setNetworkName(networkName)
@@ -161,6 +131,16 @@ class HotspotManager {
 		} catch (SecurityException e) {
 			releaseWifiP2pHotspot(PERMISSION_DENIED);
 		}
+	}
+
+	@Nullable
+	private String getNetworkName() {
+		return SDK_INT >= 29 ? "DIRECT-" + getRandomString(2) + "-" +
+				getRandomString(10) : null;
+	}
+
+	private String getPassphrase() {
+		return getRandomString(8);
 	}
 
 	void stopWifiP2pHotspot() {
@@ -177,6 +157,7 @@ class HotspotManager {
 					public void onFailure(int reason) {
 						releaseWifiP2pHotspot(OTHER);
 					}
+
 				});
 	}
 
@@ -193,52 +174,34 @@ class HotspotManager {
 		wifiLock.release();
 	}
 
-	private void releaseWifiP2pHotspot(HotspotError error) {
-		status.setValue(HOTSPOT_STOPPED);
+	private void releaseWifiP2pHotspot(@Nullable HotspotError error) {
+		status.setValue(new HotspotStopped(error));
 		if (SDK_INT >= 27) channel.close();
 		channel = null;
 		releaseLock();
 		config.setValue(null);
-		this.error.setValue(error);
 	}
 
-	private void requestGroupInfo(int attempt, @Nullable String networkName) {
-		LOG.info("requestGroupInfo attempt: " + attempt);
+	private void requestGroupInfo(int attempt,
+			@Nullable String requestedNetworkName) {
+		if (LOG.isLoggable(INFO))
+			LOG.info("requestGroupInfo attempt: " + attempt);
+
 		WifiP2pManager.GroupInfoListener listener = group -> {
-			boolean retry = false;
-			if (group == null) {
-				LOG.info("group is null");
-				retry = true;
-			} else if (!group.getNetworkName().startsWith("DIRECT-") ||
-					(networkName != null &&
-							!networkName.equals(group.getNetworkName()))) {
-				// we only retry if we have attempts left, otherwise we try what we got
-				if (attempt < MAX_GROUP_INFO_ATTEMPTS) retry = true;
-				LOG.info("expected networkName: " + networkName);
-				LOG.info(
-						"received networkName: " + group.getNetworkName());
-				LOG.info("received passphrase: " + group.getPassphrase());
-			}
-			if (retry) {
-				LOG.info("retrying");
-				// On some devices we need to wait for the group info to become available
-				if (attempt < MAX_GROUP_INFO_ATTEMPTS) {
-					handler.postDelayed(
-							() -> requestGroupInfo(attempt + 1, networkName),
-							1000);
-				} else {
-					releaseWifiP2pHotspot(NO_GROUP_INFO);
+			boolean valid = isGroupValid(group, requestedNetworkName);
+			// If the group is valid, set the hotspot to started. If we don't
+			// have any attempts left, we try what we got
+			if (valid || attempt >= MAX_GROUP_INFO_ATTEMPTS) {
+				double frequency = UNKNOWN_FREQUENCY;
+				if (SDK_INT >= 29) {
+					frequency = ((double) group.getFrequency()) / 1000;
 				}
-				return;
-			}
-			config.setValue(new NetworkConfig(group.getNetworkName(),
-					group.getPassphrase(), true));
-			if (SDK_INT >= 29) {
-				frequency.setValue(((double) group.getFrequency()) / 1000);
+				status.setValue(new HotspotStarted(new NetworkConfig(
+						group.getNetworkName(), group.getPassphrase(),
+						frequency)));
 			} else {
-				frequency.setValue(UNKNOWN_FREQUENCY);
+				retryRequestingGroupInfo(attempt + 1, requestedNetworkName);
 			}
-			status.setValue(HOTSPOT_STARTED);
 		};
 		try {
 			wifiP2pManager.requestGroupInfo(channel, listener);
@@ -247,15 +210,37 @@ class HotspotManager {
 		}
 	}
 
-	static class NetworkConfig {
+	private boolean isGroupValid(WifiP2pGroup group,
+			String requestedNetworkName) {
+		if (group == null) {
+			LOG.info("group is null");
+			return false;
+		} else if (!group.getNetworkName().startsWith("DIRECT-")) {
+			if (LOG.isLoggable(INFO)) {
+				LOG.info("received networkName without prefix 'DIRECT-': " +
+						group.getNetworkName());
+			}
+			return false;
+		} else if (requestedNetworkName != null && !requestedNetworkName
+				.equals(group.getNetworkName())) {
+			if (LOG.isLoggable(INFO)) {
+				LOG.info("expected networkName: " + requestedNetworkName);
+				LOG.info("received networkName: " + group.getNetworkName());
+			}
+			return false;
+		}
+		return true;
+	}
 
-		final String ssid, password;
-		final boolean hidden;
-
-		NetworkConfig(String ssid, String password, boolean hidden) {
-			this.ssid = ssid;
-			this.password = password;
-			this.hidden = hidden;
+	private void retryRequestingGroupInfo(int attempt,
+			String requestedNetworkName) {
+		LOG.info("retrying");
+		// On some devices we need to wait for the group info to become available
+		if (attempt < MAX_GROUP_INFO_ATTEMPTS) {
+			handler.postDelayed(() -> requestGroupInfo(attempt + 1,
+					requestedNetworkName), 1000);
+		} else {
+			releaseWifiP2pHotspot(NO_GROUP_INFO);
 		}
 	}
 
