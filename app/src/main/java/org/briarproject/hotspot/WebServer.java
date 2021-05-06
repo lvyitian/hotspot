@@ -42,7 +42,10 @@ public class WebServer extends NanoHTTPD {
 
 	@Override
 	public Response serve(IHTTPSession session) {
-		if (session.getUri().endsWith("app.apk")) {
+		if (session.getUri().endsWith("favicon.ico")) {
+			return newFixedLengthResponse(NOT_FOUND, MIME_PLAINTEXT,
+					NOT_FOUND.getDescription());
+		} else if (session.getUri().endsWith(".apk")) {
 			return serveApk();
 		} else {
 			Response res;
