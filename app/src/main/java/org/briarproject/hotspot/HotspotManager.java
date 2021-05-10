@@ -8,17 +8,11 @@ import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Handler;
 
-import org.briarproject.hotspot.HotspotState.HotspotStarted;
-import org.briarproject.hotspot.HotspotState.HotspotStopped;
 import org.briarproject.hotspot.HotspotState.NetworkConfig;
-import org.briarproject.hotspot.HotspotState.StartingHotspot;
-import org.briarproject.hotspot.HotspotState.WaitingToStartHotspot;
 
 import java.util.logging.Logger;
 
 import androidx.annotation.Nullable;
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
 
 import static android.content.Context.WIFI_P2P_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
@@ -36,6 +30,18 @@ import static org.briarproject.hotspot.StringUtils.getRandomString;
 
 class HotspotManager {
 
+	interface HotspotListener {
+
+		void onWaitingToStartHotspot();
+
+		void onStartingHotspot();
+
+		void onHotspotStarted(NetworkConfig networkConfig);
+
+		void onHotspotStopped(@Nullable String error);
+
+	}
+
 	private static final Logger LOG = getLogger(HotspotManager.class.getName());
 
 	private static final int MAX_GROUP_INFO_ATTEMPTS = 5;
@@ -43,21 +49,18 @@ class HotspotManager {
 	static final double UNKNOWN_FREQUENCY = Double.NEGATIVE_INFINITY;
 
 	private final Context ctx;
+	private final HotspotListener listener;
 	private final WifiManager wifiManager;
 	private final WifiP2pManager wifiP2pManager;
 	private final Handler handler;
 	private final String lockTag;
 
-	private final MutableLiveData<NetworkConfig> config =
-			new MutableLiveData<>();
-	private final MutableLiveData<HotspotState> status =
-			new MutableLiveData<>();
-
 	private WifiManager.WifiLock wifiLock;
 	private WifiP2pManager.Channel channel;
 
-	HotspotManager(Context ctx) {
+	HotspotManager(Context ctx, HotspotListener listener) {
 		this.ctx = ctx;
+		this.listener = listener;
 		wifiManager = (WifiManager) ctx.getApplicationContext()
 				.getSystemService(WIFI_SERVICE);
 		wifiP2pManager =
@@ -66,22 +69,16 @@ class HotspotManager {
 		lockTag = ctx.getString(R.string.app_name);
 	}
 
-	LiveData<HotspotState> getStatus() {
-		return status;
-	}
-
 	void startWifiP2pHotspot() {
 		if (wifiP2pManager == null) {
-			status.setValue(
-					new HotspotStopped(ctx.getString(R.string.no_wifi_direct)));
+			listener.onHotspotStopped(ctx.getString(R.string.no_wifi_direct));
 			return;
 		}
-		status.setValue(new StartingHotspot());
+		listener.onStartingHotspot();
 		channel = wifiP2pManager
 				.initialize(ctx, ctx.getMainLooper(), null);
 		if (channel == null) {
-			status.setValue(new HotspotStopped(
-					ctx.getString(R.string.no_wifi_direct)));
+			listener.onHotspotStopped(ctx.getString(R.string.no_wifi_direct));
 			return;
 		}
 		acquireLock();
@@ -91,7 +88,7 @@ class HotspotManager {
 
 					@Override
 					public void onSuccess() {
-						status.setValue(new WaitingToStartHotspot());
+						HotspotManager.this.listener.onWaitingToStartHotspot();
 						requestGroupInfo(1, networkName);
 					}
 
@@ -178,11 +175,10 @@ class HotspotManager {
 	}
 
 	private void releaseWifiP2pHotspot(@Nullable String error) {
-		status.setValue(new HotspotStopped(error));
+		listener.onHotspotStopped(error);
 		if (SDK_INT >= 27) channel.close();
 		channel = null;
 		releaseLock();
-		config.setValue(null);
 	}
 
 	private void requestGroupInfo(int attempt,
@@ -199,9 +195,9 @@ class HotspotManager {
 				if (SDK_INT >= 29) {
 					frequency = ((double) group.getFrequency()) / 1000;
 				}
-				status.setValue(new HotspotStarted(new NetworkConfig(
+				HotspotManager.this.listener.onHotspotStarted(new NetworkConfig(
 						group.getNetworkName(), group.getPassphrase(),
-						frequency)));
+						frequency));
 			} else {
 				retryRequestingGroupInfo(attempt + 1, requestedNetworkName);
 			}

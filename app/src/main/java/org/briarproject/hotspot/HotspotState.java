@@ -27,7 +27,7 @@ public abstract class HotspotState {
 
 	static class HotspotStarted extends HotspotState {
 
-		private NetworkConfig config;
+		private final NetworkConfig config;
 
 		HotspotStarted(NetworkConfig config) {
 			this.config = config;
@@ -41,9 +41,10 @@ public abstract class HotspotState {
 
 	static class HotspotStopped extends HotspotState {
 
-		private String error;
+		@Nullable
+		private final String error;
 
-		HotspotStopped(String error) {
+		HotspotStopped(@Nullable String error) {
 			this.error = error;
 		}
 
@@ -55,6 +56,18 @@ public abstract class HotspotState {
 		String getError() {
 			return error;
 		}
+
+	}
+
+	static class WebServerStarted extends HotspotState {
+
+	}
+
+	static class WebServerStopped extends HotspotState {
+
+	}
+
+	static class WebServerError extends HotspotState {
 
 	}
 

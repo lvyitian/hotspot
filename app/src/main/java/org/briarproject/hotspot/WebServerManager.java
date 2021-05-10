@@ -5,48 +5,45 @@ import android.content.Context;
 import java.io.IOException;
 import java.util.logging.Logger;
 
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
-
 import static java.util.logging.Level.WARNING;
 import static java.util.logging.Logger.getLogger;
-import static org.briarproject.hotspot.WebServerManager.WebServerState.ERROR;
-import static org.briarproject.hotspot.WebServerManager.WebServerState.STARTED;
-import static org.briarproject.hotspot.WebServerManager.WebServerState.STOPPED;
 
 class WebServerManager {
+
+	interface WebServerListener {
+
+		void onWebServerStarted();
+
+		void onWebServerStopped();
+
+		void onWebServerError();
+
+	}
 
 	private static final Logger LOG =
 			getLogger(WebServerManager.class.getName());
 
-	enum WebServerState {STOPPED, STARTED, ERROR}
-
 	private final WebServer webServer;
+	private WebServerListener listener;
 
-	private final MutableLiveData<WebServerState> webServerState =
-			new MutableLiveData<>(STOPPED);
-
-	WebServerManager(Context ctx) {
+	WebServerManager(Context ctx, WebServerListener listener) {
+		this.listener = listener;
 		webServer = new WebServer(ctx);
-	}
-
-	LiveData<WebServerState> getWebServerState() {
-		return webServerState;
 	}
 
 	void startWebServer() {
 		try {
 			webServer.start();
-			webServerState.postValue(STARTED);
+			listener.onWebServerStarted();
 		} catch (IOException e) {
 			LogUtils.logException(LOG, WARNING, e);
-			webServerState.postValue(ERROR);
+			listener.onWebServerError();
 		}
 	}
 
 	void stopWebServer() {
 		webServer.stop();
-		webServerState.postValue(STOPPED);
+		listener.onWebServerStopped();
 	}
 
 }

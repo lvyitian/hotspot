@@ -5,22 +5,28 @@ import android.net.wifi.WifiManager;
 
 import org.briarproject.hotspot.HotspotState.HotspotStarted;
 import org.briarproject.hotspot.HotspotState.HotspotStopped;
-import org.briarproject.hotspot.WebServerManager.WebServerState;
+import org.briarproject.hotspot.HotspotState.StartingHotspot;
+import org.briarproject.hotspot.HotspotState.WaitingToStartHotspot;
+import org.briarproject.hotspot.HotspotState.WebServerError;
+import org.briarproject.hotspot.HotspotState.WebServerStarted;
+import org.briarproject.hotspot.HotspotState.WebServerStopped;
 
 import java.util.logging.Logger;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.Observer;
 
 import static android.content.Context.WIFI_SERVICE;
 import static android.os.Build.VERSION.SDK_INT;
 import static java.util.logging.Logger.getLogger;
+import static org.briarproject.hotspot.HotspotManager.HotspotListener;
+import static org.briarproject.hotspot.WebServerManager.WebServerListener;
 
 public class MainViewModel extends AndroidViewModel
-		implements Observer<HotspotState> {
+		implements WebServerListener, HotspotListener {
 
 	private static final Logger LOG = getLogger(MainViewModel.class.getName());
 
@@ -30,10 +36,13 @@ public class MainViewModel extends AndroidViewModel
 	private final HotspotManager hotspotManager;
 	private final WebServerManager webServerManager;
 
+	private final MutableLiveData<HotspotState> status =
+			new MutableLiveData<>();
+
 	public MainViewModel(@NonNull Application app) {
 		super(app);
-		hotspotManager = new HotspotManager(app);
-		webServerManager = new WebServerManager(app);
+		hotspotManager = new HotspotManager(app, this);
+		webServerManager = new WebServerManager(app, this);
 
 		if (SDK_INT >= 21) {
 			WifiManager wifiManager =
@@ -42,16 +51,14 @@ public class MainViewModel extends AndroidViewModel
 				is5GhzSupported.setValue(true);
 			}
 		}
+	}
 
-		hotspotManager.getStatus().observeForever(this);
+	LiveData<HotspotState> getStatus() {
+		return status;
 	}
 
 	LiveData<Boolean> getIs5GhzSupported() {
 		return is5GhzSupported;
-	}
-
-	LiveData<WebServerState> getWebServerState() {
-		return webServerManager.getWebServerState();
 	}
 
 	HotspotManager getHotspotManager() {
@@ -64,20 +71,48 @@ public class MainViewModel extends AndroidViewModel
 
 	@Override
 	protected void onCleared() {
-		hotspotManager.getStatus().removeObserver(this);
+		// TODO: remove from managers?
 		hotspotManager.stopWifiP2pHotspot();
 		webServerManager.stopWebServer();
 	}
 
 	@Override
-	public void onChanged(HotspotState state) {
-		if (state instanceof HotspotStarted) {
-			LOG.info("starting webserver");
-			webServerManager.startWebServer();
-		} else if (state instanceof HotspotStopped) {
-			LOG.info("stopping webserver");
-			webServerManager.stopWebServer();
-		}
+	public void onWaitingToStartHotspot() {
+		status.setValue(new WaitingToStartHotspot());
+	}
+
+	@Override
+	public void onStartingHotspot() {
+		status.setValue(new StartingHotspot());
+	}
+
+	@Override
+	public void onHotspotStarted(HotspotState.NetworkConfig networkConfig) {
+		status.setValue(new HotspotStarted(networkConfig));
+		LOG.info("starting webserver");
+		webServerManager.startWebServer();
+	}
+
+	@Override
+	public void onHotspotStopped(@Nullable String error) {
+		status.setValue(new HotspotStopped(error));
+		LOG.info("stopping webserver");
+		webServerManager.stopWebServer();
+	}
+
+	@Override
+	public void onWebServerStarted() {
+		status.setValue(new WebServerStarted());
+	}
+
+	@Override
+	public void onWebServerStopped() {
+		status.setValue(new WebServerStopped());
+	}
+
+	@Override
+	public void onWebServerError() {
+		status.setValue(new WebServerError());
 	}
 
 }

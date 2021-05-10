@@ -15,7 +15,6 @@ import org.briarproject.hotspot.HotspotState.HotspotStopped;
 import org.briarproject.hotspot.HotspotState.NetworkConfig;
 import org.briarproject.hotspot.HotspotState.StartingHotspot;
 import org.briarproject.hotspot.HotspotState.WaitingToStartHotspot;
-import org.briarproject.hotspot.WebServerManager.WebServerState;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission;
@@ -28,6 +27,9 @@ import androidx.lifecycle.ViewModelProvider;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 import static org.briarproject.hotspot.HotspotManager.UNKNOWN_FREQUENCY;
+import static org.briarproject.hotspot.HotspotState.WebServerError;
+import static org.briarproject.hotspot.HotspotState.WebServerStarted;
+import static org.briarproject.hotspot.HotspotState.WebServerStopped;
 import static org.briarproject.hotspot.QrCodeUtils.createQrCode;
 import static org.briarproject.hotspot.QrCodeUtils.createWifiLoginString;
 
@@ -79,31 +81,23 @@ public class HotspotFragment extends Fragment {
 				b -> statusView
 						.setText(getString(R.string.wifi_5ghz_supported)));
 
-		viewModel.getHotspotManager().getStatus()
-				.observe(getViewLifecycleOwner(), state -> {
-					if (state instanceof StartingHotspot) {
-						statusView.setText(
-								getString(R.string.starting_hotspot));
-					} else if (state instanceof WaitingToStartHotspot) {
-						statusView.setText(
-								getString(R.string.callback_waiting));
-					} else if (state instanceof HotspotStarted) {
-						hotspotStarted((HotspotStarted) state);
-					} else if (state instanceof HotspotStopped) {
-						hotspotStopped((HotspotStopped) state);
-					}
-				});
-
-		viewModel.getWebServerState()
-				.observe(getViewLifecycleOwner(), state -> {
-					if (state == WebServerState.STOPPED) {
-						serverButton.setVisibility(GONE);
-					} else if (state == WebServerState.STARTED) {
-						serverButton.setVisibility(VISIBLE);
-					} else if (state == WebServerState.ERROR) {
-						statusView.setText(R.string.web_server_error);
-					}
-				});
+		viewModel.getStatus().observe(getViewLifecycleOwner(), state -> {
+			if (state instanceof StartingHotspot) {
+				statusView.setText(getString(R.string.starting_hotspot));
+			} else if (state instanceof WaitingToStartHotspot) {
+				statusView.setText(getString(R.string.callback_waiting));
+			} else if (state instanceof HotspotStarted) {
+				hotspotStarted((HotspotStarted) state);
+			} else if (state instanceof HotspotStopped) {
+				hotspotStopped((HotspotStopped) state);
+			} else if (state instanceof WebServerStarted) {
+				serverButton.setVisibility(VISIBLE);
+			} else if (state instanceof WebServerStopped) {
+				serverButton.setVisibility(GONE);
+			} else if (state instanceof WebServerError) {
+				statusView.setText(R.string.web_server_error);
+			}
+		});
 	}
 
 	private void hotspotStarted(HotspotStarted state) {
@@ -119,31 +113,28 @@ public class HotspotFragment extends Fragment {
 			statusView.setText(getString(R.string.callback_started_freq,
 					config.frequency));
 
-		if (config == null) {
+		String qrCodeText = createWifiLoginString(config.ssid,
+				config.password);
+		// TODO: heavy operation should be handed off to worker thread,
+		//  potentially within the view model and provide it together
+		//  with NetworkConfig?
+		Bitmap qrCodeBitmap = createQrCode(
+				getResources().getDisplayMetrics(), qrCodeText);
+		if (qrCodeBitmap == null) {
 			qrCode.setVisibility(GONE);
-			ssidView.setText("");
-			passwordView.setText("");
 		} else {
-			String qrCodeText = createWifiLoginString(config.ssid,
-					config.password);
-			// TODO: heavy operation should be handed off to worker thread,
-			//  potentially within the view model and provide it together
-			//  with NetworkConfig?
-			Bitmap qrCodeBitmap = createQrCode(
-					getResources().getDisplayMetrics(), qrCodeText);
-			if (qrCodeBitmap == null) {
-				qrCode.setVisibility(GONE);
-			} else {
-				qrCode.setImageBitmap(qrCodeBitmap);
-				qrCode.setVisibility(VISIBLE);
-			}
-			ssidView.setText(getString(R.string.ssid, config.ssid));
-			passwordView.setText(
-					getString(R.string.password, config.password));
+			qrCode.setImageBitmap(qrCodeBitmap);
+			qrCode.setVisibility(VISIBLE);
 		}
+		ssidView.setText(getString(R.string.ssid, config.ssid));
+		passwordView.setText(getString(R.string.password, config.password));
 	}
 
 	private void hotspotStopped(HotspotStopped state) {
+		qrCode.setVisibility(GONE);
+		ssidView.setText("");
+		passwordView.setText("");
+
 		button.setText(R.string.start_hotspot);
 		button.setEnabled(true);
 		hotspotStarted = false;
