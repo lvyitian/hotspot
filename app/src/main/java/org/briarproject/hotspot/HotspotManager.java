@@ -8,7 +8,6 @@ import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Handler;
 
-import org.briarproject.hotspot.HotspotState.HotspotError;
 import org.briarproject.hotspot.HotspotState.HotspotStarted;
 import org.briarproject.hotspot.HotspotState.HotspotStopped;
 import org.briarproject.hotspot.HotspotState.NetworkConfig;
@@ -33,13 +32,6 @@ import static android.net.wifi.p2p.WifiP2pManager.P2P_UNSUPPORTED;
 import static android.os.Build.VERSION.SDK_INT;
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Logger.getLogger;
-import static org.briarproject.hotspot.HotspotState.HotspotError.NO_GROUP_INFO;
-import static org.briarproject.hotspot.HotspotState.HotspotError.NO_WIFI_DIRECT;
-import static org.briarproject.hotspot.HotspotState.HotspotError.OTHER;
-import static org.briarproject.hotspot.HotspotState.HotspotError.P2P_ERROR;
-import static org.briarproject.hotspot.HotspotState.HotspotError.P2P_NO_SERVICE_REQUESTS;
-import static org.briarproject.hotspot.HotspotState.HotspotError.P2P_P2P_UNSUPPORTED;
-import static org.briarproject.hotspot.HotspotState.HotspotError.PERMISSION_DENIED;
 import static org.briarproject.hotspot.StringUtils.getRandomString;
 
 class HotspotManager {
@@ -50,7 +42,7 @@ class HotspotManager {
 
 	static final double UNKNOWN_FREQUENCY = Double.NEGATIVE_INFINITY;
 
-	private final Context context;
+	private final Context ctx;
 	private final WifiManager wifiManager;
 	private final WifiP2pManager wifiP2pManager;
 	private final Handler handler;
@@ -64,14 +56,14 @@ class HotspotManager {
 	private WifiManager.WifiLock wifiLock;
 	private WifiP2pManager.Channel channel;
 
-	HotspotManager(Context context) {
-		this.context = context;
-		wifiManager = (WifiManager) context.getApplicationContext()
+	HotspotManager(Context ctx) {
+		this.ctx = ctx;
+		wifiManager = (WifiManager) ctx.getApplicationContext()
 				.getSystemService(WIFI_SERVICE);
 		wifiP2pManager =
-				(WifiP2pManager) context.getSystemService(WIFI_P2P_SERVICE);
-		handler = new Handler(context.getMainLooper());
-		lockTag = context.getString(R.string.app_name);
+				(WifiP2pManager) ctx.getSystemService(WIFI_P2P_SERVICE);
+		handler = new Handler(ctx.getMainLooper());
+		lockTag = ctx.getString(R.string.app_name);
 	}
 
 	LiveData<HotspotState> getStatus() {
@@ -80,14 +72,16 @@ class HotspotManager {
 
 	void startWifiP2pHotspot() {
 		if (wifiP2pManager == null) {
-			status.setValue(new HotspotStopped(NO_WIFI_DIRECT));
+			status.setValue(
+					new HotspotStopped(ctx.getString(R.string.no_wifi_direct)));
 			return;
 		}
 		status.setValue(new StartingHotspot());
 		channel = wifiP2pManager
-				.initialize(context, context.getMainLooper(), null);
+				.initialize(ctx, ctx.getMainLooper(), null);
 		if (channel == null) {
-			status.setValue(new HotspotStopped(NO_WIFI_DIRECT));
+			status.setValue(new HotspotStopped(
+					ctx.getString(R.string.no_wifi_direct)));
 			return;
 		}
 		acquireLock();
@@ -106,18 +100,27 @@ class HotspotManager {
 						if (reason == BUSY) requestGroupInfo(1,
 								networkName); // Hotspot already running
 						else if (reason == P2P_UNSUPPORTED)
-							releaseWifiP2pHotspot(P2P_P2P_UNSUPPORTED);
+							releaseWifiP2pHotspot(
+									ctx.getString(R.string.callback_failed,
+											"p2p unsupported"));
 						else if (reason == ERROR)
-							releaseWifiP2pHotspot(P2P_ERROR);
+							releaseWifiP2pHotspot(
+									ctx.getString(R.string.callback_failed,
+											"p2p error"));
 						else if (reason == NO_SERVICE_REQUESTS)
-							releaseWifiP2pHotspot(P2P_NO_SERVICE_REQUESTS);
-						else releaseWifiP2pHotspot(P2P_ERROR);
+							releaseWifiP2pHotspot(ctx.getString(
+									R.string.callback_failed,
+									"no service requests"));
+						else releaseWifiP2pHotspot(
+									ctx.getString(R.string.callback_failed,
+											"p2p error"));
 						// all cases covered, in doubt set to error
 					}
 				};
 		try {
 			if (SDK_INT >= 29) {
 				String passphrase = getPassphrase();
+				// TODO: maybe remove this in the production version
 				LOG.info("networkName: " + networkName);
 				WifiP2pConfig config = new WifiP2pConfig.Builder()
 						.setGroupOperatingBand(GROUP_OWNER_BAND_2GHZ)
@@ -129,7 +132,7 @@ class HotspotManager {
 				wifiP2pManager.createGroup(channel, listener);
 			}
 		} catch (SecurityException e) {
-			releaseWifiP2pHotspot(PERMISSION_DENIED);
+			throw new AssertionError();
 		}
 	}
 
@@ -155,7 +158,7 @@ class HotspotManager {
 
 					@Override
 					public void onFailure(int reason) {
-						releaseWifiP2pHotspot(OTHER);
+						releaseWifiP2pHotspot(null);
 					}
 
 				});
@@ -174,7 +177,7 @@ class HotspotManager {
 		wifiLock.release();
 	}
 
-	private void releaseWifiP2pHotspot(@Nullable HotspotError error) {
+	private void releaseWifiP2pHotspot(@Nullable String error) {
 		status.setValue(new HotspotStopped(error));
 		if (SDK_INT >= 27) channel.close();
 		channel = null;
@@ -206,7 +209,7 @@ class HotspotManager {
 		try {
 			wifiP2pManager.requestGroupInfo(channel, listener);
 		} catch (SecurityException e) {
-			releaseWifiP2pHotspot(PERMISSION_DENIED);
+			throw new AssertionError();
 		}
 	}
 
@@ -240,7 +243,8 @@ class HotspotManager {
 			handler.postDelayed(() -> requestGroupInfo(attempt + 1,
 					requestedNetworkName), 1000);
 		} else {
-			releaseWifiP2pHotspot(NO_GROUP_INFO);
+			releaseWifiP2pHotspot(
+					ctx.getString(R.string.callback_no_group_info));
 		}
 	}
 

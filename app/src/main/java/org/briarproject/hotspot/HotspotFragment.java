@@ -148,35 +148,9 @@ public class HotspotFragment extends Fragment {
 		button.setEnabled(true);
 		hotspotStarted = false;
 
-		statusView.setText(
-				getString(R.string.hotspot_stopped));
+		statusView.setText(getString(R.string.hotspot_stopped));
 		if (state.hasError()) {
-			switch (state.getError()) {
-				case NO_WIFI_DIRECT:
-					statusView.setText(getString(R.string.no_wifi_direct));
-					break;
-				case P2P_ERROR:
-					statusView.setText(getString(R.string.callback_failed,
-							"p2p error"));
-					break;
-				case P2P_P2P_UNSUPPORTED:
-					statusView.setText(getString(R.string.callback_failed,
-							"p2p unsupported"));
-					break;
-				case P2P_NO_SERVICE_REQUESTS:
-					statusView.setText(
-							getString(R.string.callback_failed,
-									"no service requests"));
-					break;
-				case PERMISSION_DENIED:
-					statusView.setText(
-							getString(R.string.callback_permission_denied));
-					break;
-				case NO_GROUP_INFO:
-					statusView.setText(getString(
-							R.string.callback_no_group_info));
-					break;
-			}
+			statusView.setText(state.getError());
 		}
 	}
 

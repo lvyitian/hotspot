@@ -39,21 +39,11 @@ public abstract class HotspotState {
 
 	}
 
-	enum HotspotError {
-		NO_WIFI_DIRECT,
-		P2P_ERROR,
-		P2P_P2P_UNSUPPORTED,
-		P2P_NO_SERVICE_REQUESTS,
-		PERMISSION_DENIED,
-		NO_GROUP_INFO,
-		OTHER
-	}
-
 	static class HotspotStopped extends HotspotState {
 
-		private HotspotError error;
+		private String error;
 
-		public HotspotStopped(HotspotError error) {
+		HotspotStopped(String error) {
 			this.error = error;
 		}
 
@@ -62,7 +52,7 @@ public abstract class HotspotState {
 		}
 
 		@Nullable
-		HotspotError getError() {
+		String getError() {
 			return error;
 		}
 
