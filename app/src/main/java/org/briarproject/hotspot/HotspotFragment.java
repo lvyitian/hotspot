@@ -92,21 +92,6 @@ public class HotspotFragment extends Fragment {
 				serverButton.setVisibility(GONE);
 			}
 		});
-
-		viewModel.getWebServerStatus()
-				.observe(getViewLifecycleOwner(), status -> {
-					switch (status) {
-						case STARTED:
-							statusView.setText(R.string.web_server_started);
-							break;
-						case STOPPED:
-							statusView.setText(R.string.web_server_stopped);
-							break;
-						case ERROR:
-							statusView.setText(R.string.web_server_error);
-							break;
-					}
-				});
 	}
 
 	private void hotspotStarted(HotspotStarted state) {

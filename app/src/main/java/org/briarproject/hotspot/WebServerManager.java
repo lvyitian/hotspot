@@ -5,22 +5,20 @@ import android.content.Context;
 import java.io.IOException;
 import java.util.logging.Logger;
 
-import androidx.annotation.UiThread;
-
 import static java.util.logging.Level.WARNING;
 import static java.util.logging.Logger.getLogger;
 import static org.briarproject.hotspot.LogUtils.logException;
+import static org.briarproject.hotspot.WebServerManager.WebServerState.ERROR;
+import static org.briarproject.hotspot.WebServerManager.WebServerState.STARTED;
+import static org.briarproject.hotspot.WebServerManager.WebServerState.STOPPED;
 
 class WebServerManager {
 
+	enum WebServerState {STOPPED, STARTED, ERROR}
+
 	interface WebServerListener {
 
-		void onWebServerStarted();
-
-		@UiThread
-		void onWebServerStopped();
-
-		void onWebServerError();
+		void onStateChanged(WebServerState status);
 
 	}
 
@@ -42,15 +40,15 @@ class WebServerManager {
 				webServer.start();
 			} catch (IOException e) {
 				logException(LOG, WARNING, e);
-				listener.onWebServerError();
+				listener.onStateChanged(ERROR);
 			}
-			listener.onWebServerStarted();
+			listener.onStateChanged(STARTED);
 		}).start();
 	}
 
 	void stopWebServer() {
 		webServer.stop();
-		listener.onWebServerStopped();
+		listener.onStateChanged(STOPPED);
 	}
 
 }
