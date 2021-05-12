@@ -27,9 +27,6 @@ import androidx.lifecycle.ViewModelProvider;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 import static org.briarproject.hotspot.HotspotManager.UNKNOWN_FREQUENCY;
-import static org.briarproject.hotspot.HotspotState.WebServerError;
-import static org.briarproject.hotspot.HotspotState.WebServerStarted;
-import static org.briarproject.hotspot.HotspotState.WebServerStopped;
 import static org.briarproject.hotspot.QrCodeUtils.createQrCode;
 import static org.briarproject.hotspot.QrCodeUtils.createWifiLoginString;
 
@@ -86,18 +83,30 @@ public class HotspotFragment extends Fragment {
 				statusView.setText(getString(R.string.starting_hotspot));
 			} else if (state instanceof HotspotStarted) {
 				hotspotStarted((HotspotStarted) state);
+				serverButton.setVisibility(VISIBLE);
 			} else if (state instanceof HotspotStopped) {
 				hotspotStopped();
+				serverButton.setVisibility(GONE);
 			} else if (state instanceof HotspotError) {
 				hotspotError((HotspotError) state);
-			} else if (state instanceof WebServerStarted) {
-				serverButton.setVisibility(VISIBLE);
-			} else if (state instanceof WebServerStopped) {
 				serverButton.setVisibility(GONE);
-			} else if (state instanceof WebServerError) {
-				statusView.setText(R.string.web_server_error);
 			}
 		});
+
+		viewModel.getWebServerStatus()
+				.observe(getViewLifecycleOwner(), status -> {
+					switch (status) {
+						case STARTED:
+							statusView.setText(R.string.web_server_started);
+							break;
+						case STOPPED:
+							statusView.setText(R.string.web_server_stopped);
+							break;
+						case ERROR:
+							statusView.setText(R.string.web_server_error);
+							break;
+					}
+				});
 	}
 
 	private void hotspotStarted(HotspotStarted state) {

@@ -51,16 +51,4 @@ abstract class HotspotState {
 
 	}
 
-	static class WebServerStarted extends HotspotState {
-
-	}
-
-	static class WebServerStopped extends HotspotState {
-
-	}
-
-	static class WebServerError extends HotspotState {
-
-	}
-
 }
