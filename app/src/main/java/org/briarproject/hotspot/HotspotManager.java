@@ -38,13 +38,16 @@ class HotspotManager {
 
 		void onHotspotStarted(NetworkConfig networkConfig);
 
-		void onHotspotStopped(@Nullable String error);
+		void onHotspotStopped();
+
+		void onHotspotError(String error);
 
 	}
 
 	private static final Logger LOG = getLogger(HotspotManager.class.getName());
 
 	private static final int MAX_GROUP_INFO_ATTEMPTS = 5;
+	private static final int RETRY_DELAY_MILLIS = 1000;
 
 	static final double UNKNOWN_FREQUENCY = Double.NEGATIVE_INFINITY;
 
@@ -71,14 +74,14 @@ class HotspotManager {
 
 	void startWifiP2pHotspot() {
 		if (wifiP2pManager == null) {
-			listener.onHotspotStopped(ctx.getString(R.string.no_wifi_direct));
+			listener.onHotspotError(ctx.getString(R.string.no_wifi_direct));
 			return;
 		}
 		listener.onStartingHotspot();
 		channel = wifiP2pManager
 				.initialize(ctx, ctx.getMainLooper(), null);
 		if (channel == null) {
-			listener.onHotspotStopped(ctx.getString(R.string.no_wifi_direct));
+			listener.onHotspotError(ctx.getString(R.string.no_wifi_direct));
 			return;
 		}
 		acquireLock();
@@ -94,24 +97,26 @@ class HotspotManager {
 
 					@Override
 					public void onFailure(int reason) {
-						if (reason == BUSY) requestGroupInfo(1,
-								networkName); // Hotspot already running
+						if (reason == BUSY)
+							// Hotspot already running
+							requestGroupInfo(1, networkName);
 						else if (reason == P2P_UNSUPPORTED)
-							releaseWifiP2pHotspot(
-									ctx.getString(R.string.callback_failed,
-											"p2p unsupported"));
+							releaseHotspotWithError(ctx.getString(
+									R.string.start_callback_failed,
+									"p2p unsupported"));
 						else if (reason == ERROR)
-							releaseWifiP2pHotspot(
-									ctx.getString(R.string.callback_failed,
-											"p2p error"));
+							releaseHotspotWithError(ctx.getString(
+									R.string.start_callback_failed,
+									"p2p error"));
 						else if (reason == NO_SERVICE_REQUESTS)
-							releaseWifiP2pHotspot(ctx.getString(
-									R.string.callback_failed,
+							releaseHotspotWithError(ctx.getString(
+									R.string.start_callback_failed,
 									"no service requests"));
-						else releaseWifiP2pHotspot(
-									ctx.getString(R.string.callback_failed,
-											"p2p error"));
-						// all cases covered, in doubt set to error
+						else
+							// all cases covered, in doubt set to error
+							releaseHotspotWithError(ctx.getString(
+									R.string.start_callback_failed_unknown,
+									reason));
 					}
 				};
 		try {
@@ -129,7 +134,7 @@ class HotspotManager {
 				wifiP2pManager.createGroup(channel, listener);
 			}
 		} catch (SecurityException e) {
-			throw new AssertionError();
+			throw new AssertionError(e);
 		}
 	}
 
@@ -150,12 +155,13 @@ class HotspotManager {
 
 					@Override
 					public void onSuccess() {
-						releaseWifiP2pHotspot(null);
+						releaseHotspot();
 					}
 
 					@Override
 					public void onFailure(int reason) {
-						releaseWifiP2pHotspot(null);
+						releaseHotspotWithError(ctx.getString(
+								R.string.stop_callback_failed, reason));
 					}
 
 				});
@@ -170,15 +176,20 @@ class HotspotManager {
 		wifiLock.acquire();
 	}
 
-	private void releaseLock() {
-		wifiLock.release();
+	private void releaseHotspot() {
+		listener.onHotspotStopped();
+		closeChannelAndReleaseLock();
 	}
 
-	private void releaseWifiP2pHotspot(@Nullable String error) {
-		listener.onHotspotStopped(error);
+	private void releaseHotspotWithError(String error) {
+		listener.onHotspotError(error);
+		closeChannelAndReleaseLock();
+	}
+
+	private void closeChannelAndReleaseLock() {
 		if (SDK_INT >= 27) channel.close();
 		channel = null;
-		releaseLock();
+		wifiLock.release();
 	}
 
 	private void requestGroupInfo(int attempt,
@@ -205,11 +216,11 @@ class HotspotManager {
 		try {
 			wifiP2pManager.requestGroupInfo(channel, listener);
 		} catch (SecurityException e) {
-			throw new AssertionError();
+			throw new AssertionError(e);
 		}
 	}
 
-	private boolean isGroupValid(WifiP2pGroup group,
+	private boolean isGroupValid(@Nullable WifiP2pGroup group,
 			String requestedNetworkName) {
 		if (group == null) {
 			LOG.info("group is null");
@@ -232,15 +243,15 @@ class HotspotManager {
 	}
 
 	private void retryRequestingGroupInfo(int attempt,
-			String requestedNetworkName) {
+			@Nullable String requestedNetworkName) {
 		LOG.info("retrying");
 		// On some devices we need to wait for the group info to become available
 		if (attempt < MAX_GROUP_INFO_ATTEMPTS) {
 			handler.postDelayed(() -> requestGroupInfo(attempt + 1,
-					requestedNetworkName), 1000);
+					requestedNetworkName), RETRY_DELAY_MILLIS);
 		} else {
-			releaseWifiP2pHotspot(
-					ctx.getString(R.string.callback_no_group_info));
+			releaseHotspotWithError(
+					ctx.getString(R.string.start_callback_no_group_info));
 		}
 	}
 

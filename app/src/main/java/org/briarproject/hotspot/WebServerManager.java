@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import static java.util.logging.Level.WARNING;
 import static java.util.logging.Logger.getLogger;
+import static org.briarproject.hotspot.LogUtils.logException;
 
 class WebServerManager {
 
@@ -36,7 +37,7 @@ class WebServerManager {
 			webServer.start();
 			listener.onWebServerStarted();
 		} catch (IOException e) {
-			LogUtils.logException(LOG, WARNING, e);
+			logException(LOG, WARNING, e);
 			listener.onWebServerError();
 		}
 	}

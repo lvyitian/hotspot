@@ -10,6 +10,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.briarproject.hotspot.HotspotState.HotspotError;
 import org.briarproject.hotspot.HotspotState.HotspotStarted;
 import org.briarproject.hotspot.HotspotState.HotspotStopped;
 import org.briarproject.hotspot.HotspotState.NetworkConfig;
@@ -85,11 +86,13 @@ public class HotspotFragment extends Fragment {
 			if (state instanceof StartingHotspot) {
 				statusView.setText(getString(R.string.starting_hotspot));
 			} else if (state instanceof WaitingToStartHotspot) {
-				statusView.setText(getString(R.string.callback_waiting));
+				statusView.setText(getString(R.string.start_callback_waiting));
 			} else if (state instanceof HotspotStarted) {
 				hotspotStarted((HotspotStarted) state);
 			} else if (state instanceof HotspotStopped) {
-				hotspotStopped((HotspotStopped) state);
+				hotspotStopped();
+			} else if (state instanceof HotspotError) {
+				hotspotError((HotspotError) state);
 			} else if (state instanceof WebServerStarted) {
 				serverButton.setVisibility(VISIBLE);
 			} else if (state instanceof WebServerStopped) {
@@ -108,9 +111,9 @@ public class HotspotFragment extends Fragment {
 		NetworkConfig config = state.getConfig();
 
 		if (config.frequency == UNKNOWN_FREQUENCY)
-			statusView.setText(getString(R.string.callback_started));
+			statusView.setText(getString(R.string.start_callback_started));
 		else
-			statusView.setText(getString(R.string.callback_started_freq,
+			statusView.setText(getString(R.string.start_callback_started_freq,
 					config.frequency));
 
 		String qrCodeText = createWifiLoginString(config.ssid,
@@ -130,7 +133,7 @@ public class HotspotFragment extends Fragment {
 		passwordView.setText(getString(R.string.password, config.password));
 	}
 
-	private void hotspotStopped(HotspotStopped state) {
+	private void hotspotStopped() {
 		qrCode.setVisibility(GONE);
 		ssidView.setText("");
 		passwordView.setText("");
@@ -140,9 +143,11 @@ public class HotspotFragment extends Fragment {
 		hotspotStarted = false;
 
 		statusView.setText(getString(R.string.hotspot_stopped));
-		if (state.hasError()) {
-			statusView.setText(state.getError());
-		}
+	}
+
+	private void hotspotError(HotspotError state) {
+		hotspotStopped();
+		statusView.setText(state.getError());
 	}
 
 	@Override

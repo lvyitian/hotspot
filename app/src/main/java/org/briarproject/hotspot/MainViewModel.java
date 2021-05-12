@@ -3,6 +3,7 @@ package org.briarproject.hotspot;
 import android.app.Application;
 import android.net.wifi.WifiManager;
 
+import org.briarproject.hotspot.HotspotState.HotspotError;
 import org.briarproject.hotspot.HotspotState.HotspotStarted;
 import org.briarproject.hotspot.HotspotState.HotspotStopped;
 import org.briarproject.hotspot.HotspotState.StartingHotspot;
@@ -14,7 +15,6 @@ import org.briarproject.hotspot.HotspotState.WebServerStopped;
 import java.util.logging.Logger;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -94,10 +94,15 @@ public class MainViewModel extends AndroidViewModel
 	}
 
 	@Override
-	public void onHotspotStopped(@Nullable String error) {
-		status.setValue(new HotspotStopped(error));
+	public void onHotspotStopped() {
+		status.setValue(new HotspotStopped());
 		LOG.info("stopping webserver");
 		webServerManager.stopWebServer();
+	}
+
+	@Override
+	public void onHotspotError(String error) {
+		status.setValue(new HotspotError(error));
 	}
 
 	@Override

@@ -1,8 +1,6 @@
 package org.briarproject.hotspot;
 
-import androidx.annotation.Nullable;
-
-public abstract class HotspotState {
+abstract class HotspotState {
 
 	static class StartingHotspot extends HotspotState {
 
@@ -41,18 +39,16 @@ public abstract class HotspotState {
 
 	static class HotspotStopped extends HotspotState {
 
-		@Nullable
+	}
+
+	static class HotspotError extends HotspotState {
+
 		private final String error;
 
-		HotspotStopped(@Nullable String error) {
+		HotspotError(String error) {
 			this.error = error;
 		}
 
-		boolean hasError() {
-			return error != null;
-		}
-
-		@Nullable
 		String getError() {
 			return error;
 		}
