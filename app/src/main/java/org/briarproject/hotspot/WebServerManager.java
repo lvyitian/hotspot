@@ -18,7 +18,7 @@ class WebServerManager {
 
 	interface WebServerListener {
 
-		void onStateChanged(WebServerState status);
+		void onWebServerStateChanged(WebServerState status);
 
 	}
 
@@ -40,15 +40,15 @@ class WebServerManager {
 				webServer.start();
 			} catch (IOException e) {
 				logException(LOG, WARNING, e);
-				listener.onStateChanged(ERROR);
+				listener.onWebServerStateChanged(ERROR);
 			}
-			listener.onStateChanged(STARTED);
+			listener.onWebServerStateChanged(STARTED);
 		}).start();
 	}
 
 	void stopWebServer() {
 		webServer.stop();
-		listener.onStateChanged(STOPPED);
+		listener.onWebServerStateChanged(STOPPED);
 	}
 
 }

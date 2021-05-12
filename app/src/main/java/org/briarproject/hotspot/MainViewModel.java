@@ -6,12 +6,14 @@ import android.net.wifi.WifiManager;
 import org.briarproject.hotspot.HotspotState.HotspotError;
 import org.briarproject.hotspot.HotspotState.HotspotStarted;
 import org.briarproject.hotspot.HotspotState.HotspotStopped;
+import org.briarproject.hotspot.HotspotState.NetworkConfig;
 import org.briarproject.hotspot.HotspotState.StartingHotspot;
 import org.briarproject.hotspot.WebServerManager.WebServerState;
 
 import java.util.logging.Logger;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -35,7 +37,6 @@ public class MainViewModel extends AndroidViewModel
 
 	private final MutableLiveData<HotspotState> status =
 			new MutableLiveData<>();
-	private HotspotState.NetworkConfig networkConfig;
 
 	public MainViewModel(@NonNull Application app) {
 		super(app);
@@ -79,8 +80,13 @@ public class MainViewModel extends AndroidViewModel
 		status.setValue(new StartingHotspot());
 	}
 
+	@Nullable
+	// Field to temporarily store the network config received via onHotspotStarted()
+	// in order to post it along with a HotspotStarted status
+	private NetworkConfig networkConfig;
+
 	@Override
-	public void onHotspotStarted(HotspotState.NetworkConfig networkConfig) {
+	public void onHotspotStarted(NetworkConfig networkConfig) {
 		this.networkConfig = networkConfig;
 		LOG.info("starting webserver");
 		webServerManager.startWebServer();
@@ -99,10 +105,11 @@ public class MainViewModel extends AndroidViewModel
 	}
 
 	@Override
-	public void onStateChanged(WebServerState webServerStatus) {
+	public void onWebServerStateChanged(WebServerState webServerStatus) {
 		switch (webServerStatus) {
 			case STARTED:
 				status.postValue(new HotspotStarted(networkConfig));
+				networkConfig = null;
 				break;
 			case STOPPED:
 				// nothing to do in this case

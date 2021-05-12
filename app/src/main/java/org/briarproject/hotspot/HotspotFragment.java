@@ -82,19 +82,16 @@ public class HotspotFragment extends Fragment {
 			if (state instanceof StartingHotspot) {
 				statusView.setText(getString(R.string.starting_hotspot));
 			} else if (state instanceof HotspotStarted) {
-				hotspotStarted((HotspotStarted) state);
-				serverButton.setVisibility(VISIBLE);
+				onHotspotStarted((HotspotStarted) state);
 			} else if (state instanceof HotspotStopped) {
-				hotspotStopped();
-				serverButton.setVisibility(GONE);
+				onHotspotStopped();
 			} else if (state instanceof HotspotError) {
-				hotspotError((HotspotError) state);
-				serverButton.setVisibility(GONE);
+				onHotspotError((HotspotError) state);
 			}
 		});
 	}
 
-	private void hotspotStarted(HotspotStarted state) {
+	private void onHotspotStarted(HotspotStarted state) {
 		button.setText(R.string.stop_hotspot);
 		button.setEnabled(true);
 		hotspotStarted = true;
@@ -122,9 +119,11 @@ public class HotspotFragment extends Fragment {
 		}
 		ssidView.setText(getString(R.string.ssid, config.ssid));
 		passwordView.setText(getString(R.string.password, config.password));
+
+		serverButton.setVisibility(VISIBLE);
 	}
 
-	private void hotspotStopped() {
+	private void onHotspotStopped() {
 		qrCode.setVisibility(GONE);
 		ssidView.setText("");
 		passwordView.setText("");
@@ -134,10 +133,12 @@ public class HotspotFragment extends Fragment {
 		hotspotStarted = false;
 
 		statusView.setText(getString(R.string.hotspot_stopped));
+
+		serverButton.setVisibility(GONE);
 	}
 
-	private void hotspotError(HotspotError state) {
-		hotspotStopped();
+	private void onHotspotError(HotspotError state) {
+		onHotspotStopped();
 		statusView.setText(state.getError());
 	}
 

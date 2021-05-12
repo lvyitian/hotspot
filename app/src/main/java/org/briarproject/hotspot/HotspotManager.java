@@ -14,6 +14,7 @@ import org.briarproject.hotspot.HotspotState.NetworkConfig;
 import java.util.logging.Logger;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import static android.content.Context.WIFI_P2P_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
@@ -107,9 +108,7 @@ class HotspotManager implements ActionListener {
 		}
 	}
 
-	/**
-	 * Only used on API level 29+
-	 */
+	@RequiresApi(29)
 	private String getNetworkName() {
 		return "DIRECT-" + getRandomString(2) + "-" +
 				getRandomString(10);
