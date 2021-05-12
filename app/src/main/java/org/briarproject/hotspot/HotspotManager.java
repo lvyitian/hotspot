@@ -1,6 +1,5 @@
 package org.briarproject.hotspot;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
@@ -136,7 +135,6 @@ class HotspotManager implements ActionListener {
 		});
 	}
 
-	@SuppressLint("WakelockTimeout")
 	private void acquireLock() {
 		// WIFI_MODE_FULL has no effect on API >= 29
 		int lockType =
