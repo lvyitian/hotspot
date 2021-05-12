@@ -5,6 +5,8 @@ import android.content.Context;
 import java.io.IOException;
 import java.util.logging.Logger;
 
+import androidx.annotation.UiThread;
+
 import static java.util.logging.Level.WARNING;
 import static java.util.logging.Logger.getLogger;
 import static org.briarproject.hotspot.LogUtils.logException;
@@ -15,6 +17,7 @@ class WebServerManager {
 
 		void onWebServerStarted();
 
+		@UiThread
 		void onWebServerStopped();
 
 		void onWebServerError();
@@ -33,13 +36,16 @@ class WebServerManager {
 	}
 
 	void startWebServer() {
-		try {
-			webServer.start();
+		// TODO: offload this to the IoExecutor
+		new Thread(() -> {
+			try {
+				webServer.start();
+			} catch (IOException e) {
+				logException(LOG, WARNING, e);
+				listener.onWebServerError();
+			}
 			listener.onWebServerStarted();
-		} catch (IOException e) {
-			logException(LOG, WARNING, e);
-			listener.onWebServerError();
-		}
+		}).start();
 	}
 
 	void stopWebServer() {

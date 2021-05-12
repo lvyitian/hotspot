@@ -11,6 +11,7 @@ import org.briarproject.hotspot.HotspotState.StartingHotspot;
 import java.util.logging.Logger;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.UiThread;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -110,17 +111,18 @@ public class MainViewModel extends AndroidViewModel
 
 	@Override
 	public void onWebServerStarted() {
-		webServerStatus.setValue(STARTED);
+		webServerStatus.postValue(STARTED);
 	}
 
 	@Override
+	@UiThread
 	public void onWebServerStopped() {
 		webServerStatus.setValue(STOPPED);
 	}
 
 	@Override
 	public void onWebServerError() {
-		webServerStatus.setValue(ERROR);
+		webServerStatus.postValue(ERROR);
 	}
 
 }
