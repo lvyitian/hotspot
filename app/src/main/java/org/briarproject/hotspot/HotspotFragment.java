@@ -15,7 +15,6 @@ import org.briarproject.hotspot.HotspotState.HotspotStarted;
 import org.briarproject.hotspot.HotspotState.HotspotStopped;
 import org.briarproject.hotspot.HotspotState.NetworkConfig;
 import org.briarproject.hotspot.HotspotState.StartingHotspot;
-import org.briarproject.hotspot.HotspotState.WaitingToStartHotspot;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission;
@@ -85,8 +84,6 @@ public class HotspotFragment extends Fragment {
 		viewModel.getStatus().observe(getViewLifecycleOwner(), state -> {
 			if (state instanceof StartingHotspot) {
 				statusView.setText(getString(R.string.starting_hotspot));
-			} else if (state instanceof WaitingToStartHotspot) {
-				statusView.setText(getString(R.string.start_callback_waiting));
 			} else if (state instanceof HotspotStarted) {
 				hotspotStarted((HotspotStarted) state);
 			} else if (state instanceof HotspotStopped) {

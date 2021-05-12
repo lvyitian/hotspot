@@ -33,8 +33,6 @@ class HotspotManager implements ActionListener {
 
 	interface HotspotListener {
 
-		void onWaitingToStartHotspot();
-
 		void onStartingHotspot();
 
 		void onHotspotStarted(NetworkConfig networkConfig);
@@ -167,7 +165,6 @@ class HotspotManager implements ActionListener {
 	@Override
 	// Callback for wifiP2pManager#createGroup() during startWifiP2pHotspot()
 	public void onSuccess() {
-		listener.onWaitingToStartHotspot();
 		requestGroupInfo(1);
 	}
 

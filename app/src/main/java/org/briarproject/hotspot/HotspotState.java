@@ -6,10 +6,6 @@ abstract class HotspotState {
 
 	}
 
-	static class WaitingToStartHotspot extends HotspotState {
-
-	}
-
 	static class NetworkConfig {
 
 		final String ssid, password;

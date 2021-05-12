@@ -7,7 +7,6 @@ import org.briarproject.hotspot.HotspotState.HotspotError;
 import org.briarproject.hotspot.HotspotState.HotspotStarted;
 import org.briarproject.hotspot.HotspotState.HotspotStopped;
 import org.briarproject.hotspot.HotspotState.StartingHotspot;
-import org.briarproject.hotspot.HotspotState.WaitingToStartHotspot;
 import org.briarproject.hotspot.HotspotState.WebServerError;
 import org.briarproject.hotspot.HotspotState.WebServerStarted;
 import org.briarproject.hotspot.HotspotState.WebServerStopped;
@@ -74,11 +73,6 @@ public class MainViewModel extends AndroidViewModel
 		// TODO: remove from managers?
 		hotspotManager.stopWifiP2pHotspot();
 		webServerManager.stopWebServer();
-	}
-
-	@Override
-	public void onWaitingToStartHotspot() {
-		status.setValue(new WaitingToStartHotspot());
 	}
 
 	@Override
