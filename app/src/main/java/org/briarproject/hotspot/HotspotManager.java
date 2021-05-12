@@ -72,7 +72,7 @@ class HotspotManager implements ActionListener {
 		wifiP2pManager =
 				(WifiP2pManager) ctx.getSystemService(WIFI_P2P_SERVICE);
 		handler = new Handler(ctx.getMainLooper());
-		lockTag = ctx.getString(R.string.app_name);
+		lockTag = ctx.getPackageName() + ":app-sharing-hotspot";
 	}
 
 	void startWifiP2pHotspot() {
