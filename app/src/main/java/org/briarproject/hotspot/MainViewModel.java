@@ -8,23 +8,21 @@ import org.briarproject.hotspot.HotspotState.HotspotStarted;
 import org.briarproject.hotspot.HotspotState.HotspotStopped;
 import org.briarproject.hotspot.HotspotState.NetworkConfig;
 import org.briarproject.hotspot.HotspotState.StartingHotspot;
-import org.briarproject.hotspot.WebServerManager.WebServerState;
 
-import java.net.InetAddress;
 import java.util.logging.Logger;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
+import androidx.annotation.WorkerThread;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import static android.content.Context.WIFI_SERVICE;
 import static android.os.Build.VERSION.SDK_INT;
-import static java.util.logging.Level.INFO;
 import static java.util.logging.Logger.getLogger;
 import static org.briarproject.hotspot.HotspotManager.HotspotListener;
-import static org.briarproject.hotspot.NetworkUtils.getAccessPointAddress;
 import static org.briarproject.hotspot.WebServerManager.WebServerListener;
 
 public class MainViewModel extends AndroidViewModel
@@ -63,19 +61,21 @@ public class MainViewModel extends AndroidViewModel
 		return is5GhzSupported;
 	}
 
-	HotspotManager getHotspotManager() {
-		return hotspotManager;
-	}
-
+	@UiThread
 	void startWifiP2pHotspot() {
 		hotspotManager.startWifiP2pHotspot();
 	}
 
+	@UiThread
+	void stopWifiP2pHotspot() {
+		// stop the webserver before the hotspot
+		webServerManager.stopWebServer();
+		hotspotManager.stopWifiP2pHotspot();
+	}
+
 	@Override
 	protected void onCleared() {
-		// TODO: remove from managers?
-		hotspotManager.stopWifiP2pHotspot();
-		webServerManager.stopWebServer();
+		stopWifiP2pHotspot();
 	}
 
 	@Override
@@ -86,12 +86,13 @@ public class MainViewModel extends AndroidViewModel
 	@Nullable
 	// Field to temporarily store the network config received via onHotspotStarted()
 	// in order to post it along with a HotspotStarted status
-	private NetworkConfig networkConfig;
+	private volatile NetworkConfig networkConfig;
 
 	@Override
 	public void onHotspotStarted(NetworkConfig networkConfig) {
 		this.networkConfig = networkConfig;
 		LOG.info("starting webserver");
+		// TODO: offload this to the IoExecutor
 		webServerManager.startWebServer();
 	}
 
@@ -108,32 +109,17 @@ public class MainViewModel extends AndroidViewModel
 	}
 
 	@Override
-	public void onWebServerStateChanged(WebServerState webServerStatus) {
-		switch (webServerStatus) {
-			case STARTED:
-				onWebServerStarted();
-				break;
-			case ERROR:
-				status.postValue(new HotspotError(
-						getApplication().getString(R.string.web_server_error)));
-				break;
-		}
-	}
-
-	private void onWebServerStarted() {
-		String url = "http://192.168.49.1:9999";
-		InetAddress address = getAccessPointAddress();
-		if (address == null) {
-			LOG.info(
-					"Could not find access point address, assuming 192.168.49.1");
-		} else {
-			if (LOG.isLoggable(INFO)) {
-				LOG.info("Access point address " + address.getHostAddress());
-			}
-			url = "http://" + address.getHostAddress() + ":9999";
-		}
+	@WorkerThread
+	public void onWebServerStarted(String url) {
 		status.postValue(new HotspotStarted(networkConfig, url));
 		networkConfig = null;
+	}
+
+	@Override
+	@WorkerThread
+	public void onWebServerError() {
+		status.postValue(new HotspotError(
+				getApplication().getString(R.string.web_server_error)));
 	}
 
 }

@@ -14,10 +14,12 @@ import static fi.iki.elonen.NanoHTTPD.Response.Status.OK;
 
 public class WebServer extends NanoHTTPD {
 
+	final static int PORT = 9999;
+
 	private final Context ctx;
 
 	public WebServer(Context ctx) {
-		super(9999);
+		super(PORT);
 		this.ctx = ctx;
 	}
 

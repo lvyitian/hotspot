@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.annotation.UiThread;
 
 import static android.content.Context.WIFI_P2P_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
@@ -75,6 +76,7 @@ class HotspotManager implements ActionListener {
 		lockTag = ctx.getPackageName() + ":app-sharing-hotspot";
 	}
 
+	@UiThread
 	void startWifiP2pHotspot() {
 		if (wifiP2pManager == null) {
 			listener.onHotspotError(ctx.getString(R.string.no_wifi_direct));

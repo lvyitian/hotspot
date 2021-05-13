@@ -151,7 +151,7 @@ public class HotspotFragment extends Fragment {
 	public void onButtonClick(View view) {
 		if (hotspotStarted) {
 			button.setEnabled(false);
-			viewModel.getHotspotManager().stopWifiP2pHotspot();
+			viewModel.stopWifiP2pHotspot();
 		} else {
 			conditionManager.startConditionChecks();
 		}
