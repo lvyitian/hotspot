@@ -10,11 +10,10 @@ import static java.util.logging.Logger.getLogger;
 import static org.briarproject.hotspot.LogUtils.logException;
 import static org.briarproject.hotspot.WebServerManager.WebServerState.ERROR;
 import static org.briarproject.hotspot.WebServerManager.WebServerState.STARTED;
-import static org.briarproject.hotspot.WebServerManager.WebServerState.STOPPED;
 
 class WebServerManager {
 
-	enum WebServerState {STOPPED, STARTED, ERROR}
+	enum WebServerState {STARTED, ERROR}
 
 	interface WebServerListener {
 
@@ -26,7 +25,7 @@ class WebServerManager {
 			getLogger(WebServerManager.class.getName());
 
 	private final WebServer webServer;
-	private WebServerListener listener;
+	private final WebServerListener listener;
 
 	WebServerManager(Context ctx, WebServerListener listener) {
 		this.listener = listener;
@@ -48,7 +47,6 @@ class WebServerManager {
 
 	void stopWebServer() {
 		webServer.stop();
-		listener.onWebServerStateChanged(STOPPED);
 	}
 
 }

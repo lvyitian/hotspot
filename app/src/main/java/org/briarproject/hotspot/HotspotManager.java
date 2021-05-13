@@ -190,7 +190,7 @@ class HotspotManager implements ActionListener {
 		if (LOG.isLoggable(INFO))
 			LOG.info("requestGroupInfo attempt: " + attempt);
 
-		WifiP2pManager.GroupInfoListener listener = group -> {
+		WifiP2pManager.GroupInfoListener groupListener = group -> {
 			boolean valid = isGroupValid(group);
 			// If the group is valid, set the hotspot to started. If we don't
 			// have any attempts left, we try what we got
@@ -199,7 +199,7 @@ class HotspotManager implements ActionListener {
 				if (SDK_INT >= 29) {
 					frequency = ((double) group.getFrequency()) / 1000;
 				}
-				HotspotManager.this.listener.onHotspotStarted(new NetworkConfig(
+				listener.onHotspotStarted(new NetworkConfig(
 						group.getNetworkName(), group.getPassphrase(),
 						frequency));
 			} else {
@@ -207,7 +207,7 @@ class HotspotManager implements ActionListener {
 			}
 		};
 		try {
-			wifiP2pManager.requestGroupInfo(channel, listener);
+			wifiP2pManager.requestGroupInfo(channel, groupListener);
 		} catch (SecurityException e) {
 			throw new AssertionError(e);
 		}

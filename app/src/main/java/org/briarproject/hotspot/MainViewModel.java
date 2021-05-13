@@ -10,6 +10,7 @@ import org.briarproject.hotspot.HotspotState.NetworkConfig;
 import org.briarproject.hotspot.HotspotState.StartingHotspot;
 import org.briarproject.hotspot.WebServerManager.WebServerState;
 
+import java.net.InetAddress;
 import java.util.logging.Logger;
 
 import androidx.annotation.NonNull;
@@ -20,8 +21,10 @@ import androidx.lifecycle.MutableLiveData;
 
 import static android.content.Context.WIFI_SERVICE;
 import static android.os.Build.VERSION.SDK_INT;
+import static java.util.logging.Level.INFO;
 import static java.util.logging.Logger.getLogger;
 import static org.briarproject.hotspot.HotspotManager.HotspotListener;
+import static org.briarproject.hotspot.NetworkUtils.getAccessPointAddress;
 import static org.briarproject.hotspot.WebServerManager.WebServerListener;
 
 public class MainViewModel extends AndroidViewModel
@@ -108,17 +111,29 @@ public class MainViewModel extends AndroidViewModel
 	public void onWebServerStateChanged(WebServerState webServerStatus) {
 		switch (webServerStatus) {
 			case STARTED:
-				status.postValue(new HotspotStarted(networkConfig));
-				networkConfig = null;
-				break;
-			case STOPPED:
-				// nothing to do in this case
+				onWebServerStarted();
 				break;
 			case ERROR:
 				status.postValue(new HotspotError(
 						getApplication().getString(R.string.web_server_error)));
 				break;
 		}
+	}
+
+	private void onWebServerStarted() {
+		String url = "http://192.168.49.1:9999";
+		InetAddress address = getAccessPointAddress();
+		if (address == null) {
+			LOG.info(
+					"Could not find access point address, assuming 192.168.49.1");
+		} else {
+			if (LOG.isLoggable(INFO)) {
+				LOG.info("Access point address " + address.getHostAddress());
+			}
+			url = "http://" + address.getHostAddress() + ":9999";
+		}
+		status.postValue(new HotspotStarted(networkConfig, url));
+		networkConfig = null;
 	}
 
 }

@@ -22,15 +22,20 @@ abstract class HotspotState {
 	static class HotspotStarted extends HotspotState {
 
 		private final NetworkConfig config;
+		private final String url;
 
-		HotspotStarted(NetworkConfig config) {
+		HotspotStarted(NetworkConfig config, String url) {
 			this.config = config;
+			this.url = url;
 		}
 
 		NetworkConfig getConfig() {
 			return config;
 		}
 
+		String getUrl() {
+			return url;
+		}
 	}
 
 	static class HotspotStopped extends HotspotState {
