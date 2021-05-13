@@ -69,6 +69,7 @@ public class MainViewModel extends AndroidViewModel
 	@UiThread
 	void stopWifiP2pHotspot() {
 		// stop the webserver before the hotspot
+		// TODO maybe off-load stopping to IoExecutor as it can block
 		webServerManager.stopWebServer();
 		hotspotManager.stopWifiP2pHotspot();
 	}
@@ -100,12 +101,15 @@ public class MainViewModel extends AndroidViewModel
 	public void onHotspotStopped() {
 		status.setValue(new HotspotStopped());
 		LOG.info("stopping webserver");
+		// TODO maybe off-load stopping to IoExecutor as it can block
 		webServerManager.stopWebServer();
 	}
 
 	@Override
 	public void onHotspotError(String error) {
 		status.setValue(new HotspotError(error));
+		// TODO maybe off-load stopping to IoExecutor as it can block
+		webServerManager.stopWebServer();
 	}
 
 	@Override

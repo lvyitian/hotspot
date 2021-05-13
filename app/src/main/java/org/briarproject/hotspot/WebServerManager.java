@@ -62,6 +62,9 @@ class WebServerManager {
 		listener.onWebServerStarted(url);
 	}
 
+	/**
+	 * It is safe to call this more than once and it won't throw.
+	 */
 	void stopWebServer() {
 		webServer.stop();
 	}
