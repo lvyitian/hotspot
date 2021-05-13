@@ -29,7 +29,8 @@
 	<string name="no_wifi_manager">Device does not support Wi-Fi</string>
 	<string name="no_wifi_direct">Device does not support Wi-Fi Direct</string>
 	<string name="wifi_5ghz_supported">5Ghz Wi-Fi is supported</string>
-	<string name="connected">Peer connected</string>
+	<string name="connected">Peer has connected</string>
+	<string name="connected_toast">Peer has connected, press button for download info</string>
 	<string name="web_server_error">Error starting web server!</string>
 	<string name="server_info">Visit this site on the other phone either by scanning the QR code or by typing this link manually.</string>
 </resources>

@@ -38,6 +38,8 @@ class HotspotManager implements ActionListener {
 
 		void onHotspotStarted(NetworkConfig networkConfig);
 
+		void onDeviceConnected();
+
 		void onHotspotStopped();
 
 		void onHotspotError(String error);
@@ -204,11 +206,35 @@ class HotspotManager implements ActionListener {
 				listener.onHotspotStarted(new NetworkConfig(
 						group.getNetworkName(), group.getPassphrase(),
 						frequency));
+				requestGroupInfoForConnection();
 			} else {
 				retryRequestingGroupInfo(attempt + 1);
 			}
 		};
 		try {
+			if (channel == null) return;
+			wifiP2pManager.requestGroupInfo(channel, groupListener);
+		} catch (SecurityException e) {
+			throw new AssertionError(e);
+		}
+	}
+
+	private void requestGroupInfoForConnection() {
+		if (LOG.isLoggable(INFO))
+			LOG.info("requestGroupInfo for connection");
+		WifiP2pManager.GroupInfoListener groupListener = group -> {
+			if (group == null || group.getClientList().isEmpty()) {
+				handler.postDelayed(this::requestGroupInfoForConnection,
+						RETRY_DELAY_MILLIS);
+			} else {
+				if (LOG.isLoggable(INFO)) {
+					LOG.info("client list " + group.getClientList());
+				}
+				listener.onDeviceConnected();
+			}
+		};
+		try {
+			if (channel == null) return;
 			wifiP2pManager.requestGroupInfo(channel, groupListener);
 		} catch (SecurityException e) {
 			throw new AssertionError(e);
