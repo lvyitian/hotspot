@@ -1,6 +1,6 @@
 package org.briarproject.hotspot;
 
-import android.app.Application;
+import android.content.Context;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,10 +14,12 @@ import static fi.iki.elonen.NanoHTTPD.Response.Status.OK;
 
 public class WebServer extends NanoHTTPD {
 
-	private final Application ctx;
+	final static int PORT = 9999;
 
-	public WebServer(Application ctx) {
-		super(9999);
+	private final Context ctx;
+
+	public WebServer(Context ctx) {
+		super(PORT);
 		this.ctx = ctx;
 	}
 
