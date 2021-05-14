@@ -10,6 +10,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,13 +22,19 @@ import static fi.iki.elonen.NanoHTTPD.Response.Status.INTERNAL_ERROR;
 import static fi.iki.elonen.NanoHTTPD.Response.Status.NOT_FOUND;
 import static fi.iki.elonen.NanoHTTPD.Response.Status.OK;
 import static java.util.Objects.requireNonNull;
+import static java.util.logging.Level.WARNING;
+import static java.util.logging.Logger.getLogger;
 import static org.briarproject.hotspot.BuildConfig.VERSION_NAME;
+import static org.briarproject.hotspot.LogUtils.logException;
 
 public class WebServer extends NanoHTTPD {
 
 	final static int PORT = 9999;
+
+	private static final Logger LOG = getLogger(WebServer.class.getName());
 	private static final String FILE_HTML = "hotspot.html";
-	private final Pattern REGEX_AGENT = Pattern.compile("Android ([0-9]+)");
+	private static final Pattern REGEX_AGENT =
+			Pattern.compile("Android ([0-9]+)");
 
 	private final Context ctx;
 
@@ -45,20 +52,20 @@ public class WebServer extends NanoHTTPD {
 		if (session.getUri().endsWith("favicon.ico")) {
 			return newFixedLengthResponse(NOT_FOUND, MIME_PLAINTEXT,
 					NOT_FOUND.getDescription());
-		} else if (session.getUri().endsWith(".apk")) {
-			return serveApk();
-		} else {
-			Response res;
-			try {
-				String html = getHtml(session.getHeaders().get("user-agent"));
-				res = newFixedLengthResponse(OK, MIME_HTML, html);
-			} catch (Exception e) {
-				e.printStackTrace();
-				res = newFixedLengthResponse(INTERNAL_ERROR, MIME_PLAINTEXT,
-						INTERNAL_ERROR.getDescription());
-			}
-			return res;
 		}
+		if (session.getUri().endsWith(".apk")) {
+			return serveApk();
+		}
+		Response res;
+		try {
+			String html = getHtml(session.getHeaders().get("user-agent"));
+			res = newFixedLengthResponse(OK, MIME_HTML, html);
+		} catch (Exception e) {
+			logException(LOG, WARNING, e);
+			res = newFixedLengthResponse(INTERNAL_ERROR, MIME_PLAINTEXT,
+					INTERNAL_ERROR.getDescription());
+		}
+		return res;
 	}
 
 	private String getHtml(@Nullable String userAgent) throws Exception {
@@ -112,7 +119,7 @@ public class WebServer extends NanoHTTPD {
 			res = newFixedLengthResponse(OK, mime, fis, fileLen);
 			res.addHeader("Content-Length", "" + fileLen);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			logException(LOG, WARNING, e);
 			res = newFixedLengthResponse(NOT_FOUND, MIME_PLAINTEXT,
 					"Error 404, file not found.");
 		}
