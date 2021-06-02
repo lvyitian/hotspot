@@ -107,6 +107,7 @@ class HotspotManager implements ActionListener {
 				wifiP2pManager.createGroup(channel, this);
 			}
 		} catch (SecurityException e) {
+			// this should never happen, because we request permissions before
 			throw new AssertionError(e);
 		}
 	}
