@@ -2,6 +2,7 @@ package org.briarproject.hotspot;
 
 import android.app.Application;
 import android.net.wifi.WifiManager;
+import android.widget.Toast;
 
 import org.briarproject.hotspot.HotspotState.HotspotError;
 import org.briarproject.hotspot.HotspotState.HotspotStarted;
@@ -21,6 +22,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import static android.content.Context.WIFI_SERVICE;
 import static android.os.Build.VERSION.SDK_INT;
+import static android.widget.Toast.LENGTH_LONG;
 import static java.util.logging.Logger.getLogger;
 import static org.briarproject.hotspot.HotspotManager.HotspotListener;
 import static org.briarproject.hotspot.WebServerManager.WebServerListener;
@@ -95,6 +97,12 @@ public class MainViewModel extends AndroidViewModel
 		LOG.info("starting webserver");
 		// TODO: offload this to the IoExecutor
 		webServerManager.startWebServer();
+	}
+
+	@Override
+	public void onDeviceConnected() {
+		Toast.makeText(getApplication(), R.string.connected_toast, LENGTH_LONG)
+				.show();
 	}
 
 	@Override
