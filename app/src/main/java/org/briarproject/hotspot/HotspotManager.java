@@ -209,7 +209,7 @@ class HotspotManager implements ActionListener {
 						frequency));
 				requestGroupInfoForConnection();
 			} else {
-				retryRequestingGroupInfo(attempt + 1);
+				retryRequestingGroupInfo(attempt);
 			}
 		};
 		try {
