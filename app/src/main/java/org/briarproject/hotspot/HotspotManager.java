@@ -1,6 +1,9 @@
 package org.briarproject.hotspot;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pGroup;
@@ -23,8 +26,12 @@ import static android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF;
 import static android.net.wifi.p2p.WifiP2pConfig.GROUP_OWNER_BAND_2GHZ;
 import static android.net.wifi.p2p.WifiP2pManager.BUSY;
 import static android.net.wifi.p2p.WifiP2pManager.ERROR;
+import static android.net.wifi.p2p.WifiP2pManager.EXTRA_WIFI_STATE;
 import static android.net.wifi.p2p.WifiP2pManager.NO_SERVICE_REQUESTS;
 import static android.net.wifi.p2p.WifiP2pManager.P2P_UNSUPPORTED;
+import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION;
+import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_STATE_DISABLED;
+import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_STATE_ENABLED;
 import static android.os.Build.VERSION.SDK_INT;
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Logger.getLogger;
@@ -104,13 +111,39 @@ class HotspotManager implements ActionListener {
 						.build();
 				wifiP2pManager.createGroup(channel, config, this);
 			} else {
-				wifiP2pManager.createGroup(channel, this);
+				ctx.registerReceiver(receiver, new IntentFilter(
+						WIFI_P2P_STATE_CHANGED_ACTION));
 			}
 		} catch (SecurityException e) {
 			// this should never happen, because we request permissions before
 			throw new AssertionError(e);
 		}
 	}
+
+	// Only used on API < 29
+	final BroadcastReceiver receiver = new BroadcastReceiver() {
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			int state = intent.getIntExtra(EXTRA_WIFI_STATE,
+					WIFI_P2P_STATE_DISABLED);
+			if (state == WIFI_P2P_STATE_ENABLED) {
+				try {
+					wifiP2pManager.createGroup(channel, HotspotManager.this);
+				} catch (SecurityException e) {
+					// this should never happen, because we request permissions before
+					throw new AssertionError(e);
+				}
+				try {
+					ctx.unregisterReceiver(receiver);
+				} catch (IllegalArgumentException e) {
+					// Can happen if the hotspot got stopped in the meantime and
+					// the receiver already got unregistered.
+				}
+			}
+		}
+
+	};
 
 	@RequiresApi(29)
 	private String getNetworkName() {
@@ -123,6 +156,17 @@ class HotspotManager implements ActionListener {
 	}
 
 	void stopWifiP2pHotspot() {
+		if (SDK_INT < 29)
+			try {
+				ctx.unregisterReceiver(receiver);
+			} catch (IllegalArgumentException e) {
+				// Can happen either if the hotspot is stopped before the
+				// receiver has been registered or the receiver already got
+				// unregistered after receiving WIFI_P2P_STATE_ENABLED.
+				// We try to unregister anyway to make sure we don't process
+				// broadcasts any longer and catch the exception in case
+				// it's already unregistered.
+			}
 		if (channel == null) return;
 		wifiP2pManager.removeGroup(channel, new ActionListener() {
 
