@@ -21,9 +21,11 @@ import androidx.activity.result.contract.ActivityResultContracts.RequestPermissi
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import static android.os.Build.VERSION.SDK_INT;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 import static org.briarproject.hotspot.HotspotManager.UNKNOWN_FREQUENCY;
@@ -39,9 +41,11 @@ public class HotspotFragment extends Fragment {
 	private Button button, serverButton;
 	private boolean hotspotStarted = false;
 
+	@RequiresApi(29)
 	private final ActivityResultLauncher<String> locationRequest =
 			registerForActivityResult(new RequestPermission(), granted -> {
-				conditionManager.onRequestPermissionResult(granted);
+				((ConditionManager29) conditionManager)
+						.onRequestPermissionResult(granted);
 				startWifiP2pHotspot();
 			});
 	private final ActivityResultLauncher<Intent> wifiRequest =
@@ -55,8 +59,10 @@ public class HotspotFragment extends Fragment {
 			Bundle savedInstanceState) {
 		viewModel = new ViewModelProvider(requireActivity())
 				.get(MainViewModel.class);
-		conditionManager = new ConditionManager(requireActivity(),
-				locationRequest, wifiRequest);
+		conditionManager = SDK_INT < 29 ?
+				new ConditionManager28(requireActivity(), wifiRequest) :
+				new ConditionManager29(requireActivity(), locationRequest,
+						wifiRequest);
 		return inflater.inflate(R.layout.fragment_hotspot, container, false);
 	}
 
@@ -142,18 +148,17 @@ public class HotspotFragment extends Fragment {
 		statusView.setText(state.getError());
 	}
 
-	@Override
-	public void onStart() {
-		super.onStart();
-		conditionManager.resetPermissions();
-	}
-
 	public void onButtonClick(View view) {
 		if (hotspotStarted) {
+			// the hotspot is currently started → stop it
 			button.setEnabled(false);
 			viewModel.stopWifiP2pHotspot();
 		} else {
-			conditionManager.startConditionChecks();
+			// the hotspot is currently stopped → start it
+			conditionManager.resetPermissions();
+			if (conditionManager.checkAndRequestConditions()) {
+				startWifiP2pHotspot();
+			}
 		}
 	}
 
