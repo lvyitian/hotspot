@@ -5,13 +5,17 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 
+import androidx.annotation.StringRes;
+import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.FragmentActivity;
+
 import static android.content.Intent.CATEGORY_DEFAULT;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 import static org.briarproject.hotspot.BuildConfig.APPLICATION_ID;
 
 class UiUtils {
 
-	public static DialogInterface.OnClickListener getGoToSettingsListener(
+	static DialogInterface.OnClickListener getGoToSettingsListener(
 			Context context) {
 		return (dialog, which) -> {
 			Intent i = new Intent();
@@ -21,6 +25,28 @@ class UiUtils {
 			i.addFlags(FLAG_ACTIVITY_NEW_TASK);
 			context.startActivity(i);
 		};
+	}
+
+	static void showDenialDialog(FragmentActivity ctx, @StringRes int title,
+			@StringRes int body, DialogInterface.OnClickListener onOkClicked) {
+		AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
+		builder.setTitle(title);
+		builder.setMessage(body);
+		builder.setPositiveButton(R.string.ok, onOkClicked);
+		builder.setNegativeButton(R.string.cancel,
+				(dialog, which) -> ctx.supportFinishAfterTransition());
+		builder.show();
+	}
+
+	static void showRationale(Context ctx, @StringRes int title,
+			@StringRes int body,
+			Runnable onContinueClicked) {
+		AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
+		builder.setTitle(title);
+		builder.setMessage(body);
+		builder.setNeutralButton(R.string.continue_button,
+				(dialog, which) -> onContinueClicked.run());
+		builder.show();
 	}
 
 }
