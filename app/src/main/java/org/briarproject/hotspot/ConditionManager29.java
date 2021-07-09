@@ -5,7 +5,10 @@ import android.net.wifi.WifiManager;
 import android.provider.Settings;
 
 import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCaller;
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission;
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
 import androidx.annotation.RequiresApi;
 import androidx.fragment.app.FragmentActivity;
 
@@ -33,19 +36,31 @@ public class ConditionManager29 implements ConditionManager {
 	private Permission wifiSetting = Permission.SHOW_RATIONALE;
 	private Permission locationPermission = Permission.UNKNOWN;
 
-	private final FragmentActivity ctx;
-	private final WifiManager wifiManager;
+	private FragmentActivity ctx;
+	private WifiManager wifiManager;
 	private final ActivityResultLauncher<String> locationRequest;
 	private final ActivityResultLauncher<Intent> wifiRequest;
 
-	ConditionManager29(FragmentActivity ctx,
-			ActivityResultLauncher<String> locationRequest,
-			ActivityResultLauncher<Intent> wifiRequest) {
+	ConditionManager29(ActivityResultCaller arc,
+			PermissionUpdateCallback callback) {
+		locationRequest = arc.registerForActivityResult(
+				new RequestPermission(), granted -> {
+					onRequestPermissionResult(granted);
+					callback.update();
+				});
+
+		wifiRequest = arc.registerForActivityResult(
+				new StartActivityForResult(), result -> {
+					onRequestWifiEnabledResult();
+					callback.update();
+				});
+	}
+
+	@Override
+	public void init(FragmentActivity ctx) {
 		this.ctx = ctx;
 		this.wifiManager = (WifiManager) ctx.getApplicationContext()
 				.getSystemService(WIFI_SERVICE);
-		this.locationRequest = locationRequest;
-		this.wifiRequest = wifiRequest;
 	}
 
 	@Override
