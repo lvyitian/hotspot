@@ -124,6 +124,7 @@ class HotspotManager implements ActionListener {
 	final BroadcastReceiver receiver = new BroadcastReceiver() {
 
 		@Override
+		@UiThread
 		public void onReceive(Context context, Intent intent) {
 			if (intent.getAction() == null ||
 					!intent.getAction().equals(WIFI_P2P_STATE_CHANGED_ACTION)) {
@@ -159,6 +160,7 @@ class HotspotManager implements ActionListener {
 		return getRandomString(8);
 	}
 
+	@UiThread
 	void stopWifiP2pHotspot() {
 		if (SDK_INT < 29)
 			try {
