@@ -53,7 +53,7 @@ public class ConditionManager28 implements ConditionManager {
 		wifiSetting = Permission.SHOW_RATIONALE;
 	}
 
-	public boolean areEssentialPermissionsGranted() {
+	private boolean areEssentialPermissionsGranted() {
 		return wifiManager.isWifiEnabled();
 	}
 
@@ -83,11 +83,11 @@ public class ConditionManager28 implements ConditionManager {
 		return false;
 	}
 
-	protected void requestEnableWiFi() {
+	private void requestEnableWiFi() {
 		wifiRequest.launch(new Intent(Settings.ACTION_WIFI_SETTINGS));
 	}
 
-	public void onRequestWifiEnabledResult() {
+	private void onRequestWifiEnabledResult() {
 		wifiSetting = wifiManager.isWifiEnabled() ? Permission.GRANTED :
 				Permission.PERMANENTLY_DENIED;
 	}

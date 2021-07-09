@@ -69,7 +69,7 @@ public class ConditionManager29 implements ConditionManager {
 		locationPermission = Permission.UNKNOWN;
 	}
 
-	public boolean areEssentialPermissionsGranted() {
+	private boolean areEssentialPermissionsGranted() {
 		return locationPermission == Permission.GRANTED
 				&& wifiManager.isWifiEnabled();
 	}
@@ -122,15 +122,15 @@ public class ConditionManager29 implements ConditionManager {
 		}
 	}
 
-	protected void requestPermissions() {
+	private void requestPermissions() {
 		locationRequest.launch(ACCESS_FINE_LOCATION);
 	}
 
-	protected void requestEnableWiFi() {
+	private void requestEnableWiFi() {
 		wifiRequest.launch(new Intent(Settings.Panel.ACTION_WIFI));
 	}
 
-	public void onRequestWifiEnabledResult() {
+	private void onRequestWifiEnabledResult() {
 		wifiSetting = wifiManager.isWifiEnabled() ? Permission.GRANTED :
 				Permission.PERMANENTLY_DENIED;
 	}
