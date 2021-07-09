@@ -110,9 +110,10 @@ class HotspotManager implements ActionListener {
 						.setPassphrase(passphrase)
 						.build();
 				wifiP2pManager.createGroup(channel, config, this);
-			} else {
+			} else if (!receiverRegistered) {
 				ctx.registerReceiver(receiver, new IntentFilter(
 						WIFI_P2P_STATE_CHANGED_ACTION));
+				receiverRegistered = true;
 			}
 		} catch (SecurityException e) {
 			// this should never happen, because we request permissions before
@@ -121,6 +122,7 @@ class HotspotManager implements ActionListener {
 	}
 
 	// Only used on API < 29
+	private boolean receiverRegistered = false;
 	final BroadcastReceiver receiver = new BroadcastReceiver() {
 
 		@Override
@@ -139,16 +141,25 @@ class HotspotManager implements ActionListener {
 					// this should never happen, because we request permissions before
 					throw new AssertionError(e);
 				}
-				try {
-					ctx.unregisterReceiver(receiver);
-				} catch (IllegalArgumentException e) {
-					// Can happen if the hotspot got stopped in the meantime and
-					// the receiver already got unregistered.
-				}
+				unregisterReceiver();
 			}
 		}
 
 	};
+
+	private void unregisterReceiver() {
+		if (!receiverRegistered)
+			return;
+		try {
+			ctx.unregisterReceiver(receiver);
+			receiverRegistered = false;
+		} catch (IllegalArgumentException e) {
+			// This gets thrown when we try to unregister an already unregistered
+			// receiver. We do keep a flag whether the receiver is actually
+			// registered, so it should not happen.
+			throw new AssertionError(e);
+		}
+	}
 
 	@RequiresApi(29)
 	private String getNetworkName() {
@@ -163,16 +174,7 @@ class HotspotManager implements ActionListener {
 	@UiThread
 	void stopWifiP2pHotspot() {
 		if (SDK_INT < 29)
-			try {
-				ctx.unregisterReceiver(receiver);
-			} catch (IllegalArgumentException e) {
-				// Can happen either if the hotspot is stopped before the
-				// receiver has been registered or the receiver already got
-				// unregistered after receiving WIFI_P2P_STATE_ENABLED.
-				// We try to unregister anyway to make sure we don't process
-				// broadcasts any longer and catch the exception in case
-				// it's already unregistered.
-			}
+			unregisterReceiver();
 		if (channel == null) return;
 		wifiP2pManager.removeGroup(channel, new ActionListener() {
 
