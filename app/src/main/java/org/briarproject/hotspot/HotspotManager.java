@@ -125,6 +125,10 @@ class HotspotManager implements ActionListener {
 
 		@Override
 		public void onReceive(Context context, Intent intent) {
+			if (intent.getAction() == null ||
+					!intent.getAction().equals(WIFI_P2P_STATE_CHANGED_ACTION)) {
+				return;
+			}
 			int state = intent.getIntExtra(EXTRA_WIFI_STATE,
 					WIFI_P2P_STATE_DISABLED);
 			if (state == WIFI_P2P_STATE_ENABLED) {
