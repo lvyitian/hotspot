@@ -5,7 +5,9 @@ import android.net.wifi.WifiManager;
 import android.provider.Settings;
 
 import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCaller;
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
 import androidx.fragment.app.FragmentActivity;
 
 import static android.content.Context.WIFI_SERVICE;
@@ -16,9 +18,6 @@ import static org.briarproject.hotspot.UiUtils.showRationale;
  * This class ensures that the conditions to open a hotspot are fulfilled on
  * API levels < 29.
  * <p>
- * Be sure to call and {@link #onRequestWifiEnabledResult()} when you get the
- * {@link ActivityResult}.
- * <p>
  * As soon as {@link #checkAndRequestConditions()} returns true,
  * all conditions are fulfilled.
  */
@@ -26,23 +25,32 @@ public class ConditionManager28 implements ConditionManager {
 
 	private Permission wifiSetting = Permission.SHOW_RATIONALE;
 
-	private final FragmentActivity ctx;
-	private final WifiManager wifiManager;
+	private FragmentActivity ctx;
+	private WifiManager wifiManager;
 	private final ActivityResultLauncher<Intent> wifiRequest;
 
-	ConditionManager28(FragmentActivity ctx,
-			ActivityResultLauncher<Intent> wifiRequest) {
+	ConditionManager28(ActivityResultCaller arc,
+			PermissionUpdateCallback callback) {
+		wifiRequest = arc.registerForActivityResult(
+				new StartActivityForResult(), result -> {
+					onRequestWifiEnabledResult();
+					callback.update();
+				});
+	}
+
+	@Override
+	public void init(FragmentActivity ctx) {
 		this.ctx = ctx;
 		this.wifiManager = (WifiManager) ctx.getApplicationContext()
 				.getSystemService(WIFI_SERVICE);
-		this.wifiRequest = wifiRequest;
 	}
 
+	@Override
 	public void resetPermissions() {
 		wifiSetting = Permission.SHOW_RATIONALE;
 	}
 
-	public boolean areEssentialPermissionsGranted() {
+	private boolean areEssentialPermissionsGranted() {
 		return wifiManager.isWifiEnabled();
 	}
 
@@ -72,11 +80,11 @@ public class ConditionManager28 implements ConditionManager {
 		return false;
 	}
 
-	protected void requestEnableWiFi() {
+	private void requestEnableWiFi() {
 		wifiRequest.launch(new Intent(Settings.ACTION_WIFI_SETTINGS));
 	}
 
-	public void onRequestWifiEnabledResult() {
+	private void onRequestWifiEnabledResult() {
 		wifiSetting = wifiManager.isWifiEnabled() ? Permission.GRANTED :
 				Permission.PERMANENTLY_DENIED;
 	}

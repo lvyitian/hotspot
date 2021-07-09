@@ -1,6 +1,5 @@
 package org.briarproject.hotspot;
 
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -16,12 +15,8 @@ import org.briarproject.hotspot.HotspotState.HotspotStopped;
 import org.briarproject.hotspot.HotspotState.NetworkConfig;
 import org.briarproject.hotspot.HotspotState.StartingHotspot;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts.RequestPermission;
-import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -35,34 +30,21 @@ import static org.briarproject.hotspot.QrCodeUtils.createWifiLoginString;
 public class HotspotFragment extends Fragment {
 
 	private MainViewModel viewModel;
-	private ConditionManager conditionManager;
 	private ImageView qrCode;
 	private TextView ssidView, passwordView, statusView;
 	private Button button, serverButton;
 	private boolean hotspotStarted = false;
 
-	@RequiresApi(29)
-	private final ActivityResultLauncher<String> locationRequest =
-			registerForActivityResult(new RequestPermission(), granted -> {
-				((ConditionManager29) conditionManager)
-						.onRequestPermissionResult(granted);
-				startWifiP2pHotspot();
-			});
-	private final ActivityResultLauncher<Intent> wifiRequest =
-			registerForActivityResult(new StartActivityForResult(), result -> {
-				conditionManager.onRequestWifiEnabledResult();
-				startWifiP2pHotspot();
-			});
+	private final ConditionManager conditionManager = SDK_INT < 29 ?
+			new ConditionManager28(this, this::startWifiP2pHotspot) :
+			new ConditionManager29(this, this::startWifiP2pHotspot);
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState) {
 		viewModel = new ViewModelProvider(requireActivity())
 				.get(MainViewModel.class);
-		conditionManager = SDK_INT < 29 ?
-				new ConditionManager28(requireActivity(), wifiRequest) :
-				new ConditionManager29(requireActivity(), locationRequest,
-						wifiRequest);
+		conditionManager.init(requireActivity());
 		return inflater.inflate(R.layout.fragment_hotspot, container, false);
 	}
 
@@ -148,6 +130,12 @@ public class HotspotFragment extends Fragment {
 		statusView.setText(state.getError());
 	}
 
+	@Override
+	public void onStart() {
+		super.onStart();
+		conditionManager.resetPermissions();
+	}
+
 	public void onButtonClick(View view) {
 		if (hotspotStarted) {
 			// the hotspot is currently started → stop it
@@ -155,7 +143,6 @@ public class HotspotFragment extends Fragment {
 			viewModel.stopWifiP2pHotspot();
 		} else {
 			// the hotspot is currently stopped → start it
-			conditionManager.resetPermissions();
 			if (conditionManager.checkAndRequestConditions()) {
 				startWifiP2pHotspot();
 			}

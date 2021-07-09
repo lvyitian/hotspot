@@ -1,5 +1,7 @@
 package org.briarproject.hotspot;
 
+import androidx.fragment.app.FragmentActivity;
+
 /**
  * Interface for the ConditionManagers that ensure that the conditions to open a
  * hotspot are fulfilled. There are different implementations for API levels
@@ -10,6 +12,15 @@ interface ConditionManager {
 	enum Permission {
 		UNKNOWN, GRANTED, SHOW_RATIONALE, PERMANENTLY_DENIED
 	}
+
+	interface PermissionUpdateCallback {
+		void update();
+	}
+
+	/**
+	 * Pass a FragmentActivity context here during `onCreateView()`.
+	 */
+	void init(FragmentActivity ctx);
 
 	/**
 	 * Call this to reset state. Do this every time a user interaction triggers
@@ -26,11 +37,5 @@ interface ConditionManager {
 	 * @return true if conditions are fulfilled and flow can continue.
 	 */
 	boolean checkAndRequestConditions();
-
-	/**
-	 * A method to be called when the request for enabling the wifi has finished,
-	 * i.e. the started activity / panel returned.
-	 */
-	void onRequestWifiEnabledResult();
 
 }
