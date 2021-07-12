@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.net.wifi.WifiManager;
 import android.provider.Settings;
 
-import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCaller;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission;
@@ -22,10 +21,6 @@ import static org.briarproject.hotspot.UiUtils.showRationale;
 /**
  * This class ensures that the conditions to open a hotspot are fulfilled on
  * API levels >= 29.
- * <p>
- * Be sure to call {@link #onRequestPermissionResult(Boolean)} and
- * {@link #onRequestWifiEnabledResult()} when you get the
- * {@link ActivityResult}.
  * <p>
  * As soon as {@link #checkAndRequestConditions()} returns true,
  * all conditions are fulfilled.
@@ -111,7 +106,7 @@ public class ConditionManager29 implements ConditionManager {
 		return false;
 	}
 
-	void onRequestPermissionResult(Boolean granted) {
+	private void onRequestPermissionResult(Boolean granted) {
 		if (granted != null && granted) {
 			locationPermission = Permission.GRANTED;
 		} else if (shouldShowRequestPermissionRationale(ctx,

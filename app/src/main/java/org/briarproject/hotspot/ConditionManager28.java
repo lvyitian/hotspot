@@ -18,9 +18,6 @@ import static org.briarproject.hotspot.UiUtils.showRationale;
  * This class ensures that the conditions to open a hotspot are fulfilled on
  * API levels < 29.
  * <p>
- * Be sure to call and {@link #onRequestWifiEnabledResult()} when you get the
- * {@link ActivityResult}.
- * <p>
  * As soon as {@link #checkAndRequestConditions()} returns true,
  * all conditions are fulfilled.
  */

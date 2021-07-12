@@ -121,15 +121,16 @@ class HotspotManager implements ActionListener {
 		}
 	}
 
-	// Only used on API < 29
+	// Only used on API < 29. The flag will be read and written only from the UI
+	// thread, either by methods annotated @UiThread or by the broadcast receiver
+	// which also runs on the UI thread.
 	private boolean receiverRegistered = false;
 	final BroadcastReceiver receiver = new BroadcastReceiver() {
 
 		@Override
 		@UiThread
 		public void onReceive(Context context, Intent intent) {
-			if (intent.getAction() == null ||
-					!intent.getAction().equals(WIFI_P2P_STATE_CHANGED_ACTION)) {
+			if (!WIFI_P2P_STATE_CHANGED_ACTION.equals(intent.getAction())) {
 				return;
 			}
 			int state = intent.getIntExtra(EXTRA_WIFI_STATE,
@@ -147,6 +148,7 @@ class HotspotManager implements ActionListener {
 
 	};
 
+	@UiThread
 	private void unregisterReceiver() {
 		if (!receiverRegistered)
 			return;

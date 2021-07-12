@@ -130,6 +130,12 @@ public class HotspotFragment extends Fragment {
 		statusView.setText(state.getError());
 	}
 
+	@Override
+	public void onStart() {
+		super.onStart();
+		conditionManager.resetPermissions();
+	}
+
 	public void onButtonClick(View view) {
 		if (hotspotStarted) {
 			// the hotspot is currently started → stop it
@@ -137,7 +143,6 @@ public class HotspotFragment extends Fragment {
 			viewModel.stopWifiP2pHotspot();
 		} else {
 			// the hotspot is currently stopped → start it
-			conditionManager.resetPermissions();
 			if (conditionManager.checkAndRequestConditions()) {
 				startWifiP2pHotspot();
 			}
