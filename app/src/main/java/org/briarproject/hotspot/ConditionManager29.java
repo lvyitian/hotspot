@@ -28,7 +28,6 @@ import static org.briarproject.hotspot.UiUtils.showRationale;
 @RequiresApi(29)
 public class ConditionManager29 implements ConditionManager {
 
-	private Permission wifiSetting = Permission.SHOW_RATIONALE;
 	private Permission locationPermission = Permission.UNKNOWN;
 
 	private FragmentActivity ctx;
@@ -45,10 +44,7 @@ public class ConditionManager29 implements ConditionManager {
 				});
 
 		wifiRequest = arc.registerForActivityResult(
-				new StartActivityForResult(), result -> {
-					onRequestWifiEnabledResult();
-					callback.update();
-				});
+				new StartActivityForResult(), result -> callback.update());
 	}
 
 	@Override
@@ -60,7 +56,6 @@ public class ConditionManager29 implements ConditionManager {
 
 	@Override
 	public void resetPermissions() {
-		wifiSetting = Permission.SHOW_RATIONALE;
 		locationPermission = Permission.UNKNOWN;
 	}
 
@@ -78,7 +73,7 @@ public class ConditionManager29 implements ConditionManager {
 			return false;
 		}
 
-		// If an essential permission has been permanently denied, ask the
+		// If the location permission has been permanently denied, ask the
 		// user to change the setting
 		if (locationPermission == Permission.PERMANENTLY_DENIED) {
 			showDenialDialog(ctx, R.string.permission_location_title,
@@ -86,19 +81,17 @@ public class ConditionManager29 implements ConditionManager {
 					getGoToSettingsListener(ctx));
 			return false;
 		}
-		if (wifiSetting == Permission.PERMANENTLY_DENIED) {
-			showDenialDialog(ctx, R.string.wifi_settings_title,
-					R.string.wifi_settings_request_denied_body,
-					(d, w) -> requestEnableWiFi());
-			return false;
-		}
 
-		// Should we show the rationale for location permission or Wi-Fi?
+		// Should we show the rationale for location permission?
 		if (locationPermission == Permission.SHOW_RATIONALE) {
 			showRationale(ctx, R.string.permission_location_title,
 					R.string.permission_hotspot_location_request_body,
 					this::requestPermissions);
-		} else if (wifiSetting == Permission.SHOW_RATIONALE) {
+			return false;
+		}
+
+		// If Wifi is not enabled, we show the rationale for enabling Wifi?
+		if (!wifiManager.isWifiEnabled()) {
 			showRationale(ctx, R.string.wifi_settings_title,
 					R.string.wifi_settings_request_enable_body,
 					this::requestEnableWiFi);
@@ -123,11 +116,6 @@ public class ConditionManager29 implements ConditionManager {
 
 	private void requestEnableWiFi() {
 		wifiRequest.launch(new Intent(Settings.Panel.ACTION_WIFI));
-	}
-
-	private void onRequestWifiEnabledResult() {
-		wifiSetting = wifiManager.isWifiEnabled() ? Permission.GRANTED :
-				Permission.PERMANENTLY_DENIED;
 	}
 
 }
