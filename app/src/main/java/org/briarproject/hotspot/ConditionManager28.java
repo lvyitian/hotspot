@@ -4,14 +4,12 @@ import android.content.Intent;
 import android.net.wifi.WifiManager;
 import android.provider.Settings;
 
-import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCaller;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
 import androidx.fragment.app.FragmentActivity;
 
 import static android.content.Context.WIFI_SERVICE;
-import static org.briarproject.hotspot.UiUtils.showDenialDialog;
 import static org.briarproject.hotspot.UiUtils.showRationale;
 
 /**
@@ -23,8 +21,6 @@ import static org.briarproject.hotspot.UiUtils.showRationale;
  */
 public class ConditionManager28 implements ConditionManager {
 
-	private Permission wifiSetting = Permission.SHOW_RATIONALE;
-
 	private FragmentActivity ctx;
 	private WifiManager wifiManager;
 	private final ActivityResultLauncher<Intent> wifiRequest;
@@ -32,10 +28,7 @@ public class ConditionManager28 implements ConditionManager {
 	ConditionManager28(ActivityResultCaller arc,
 			PermissionUpdateCallback callback) {
 		wifiRequest = arc.registerForActivityResult(
-				new StartActivityForResult(), result -> {
-					onRequestWifiEnabledResult();
-					callback.update();
-				});
+				new StartActivityForResult(), result -> callback.update());
 	}
 
 	@Override
@@ -47,7 +40,6 @@ public class ConditionManager28 implements ConditionManager {
 
 	@Override
 	public void resetPermissions() {
-		wifiSetting = Permission.SHOW_RATIONALE;
 	}
 
 	private boolean areEssentialPermissionsGranted() {
@@ -58,35 +50,24 @@ public class ConditionManager28 implements ConditionManager {
 	public boolean checkAndRequestConditions() {
 		if (areEssentialPermissionsGranted()) return true;
 
+		// Try enabling the Wifi and return true if that seems to have been
+		// successful, i.e. "Wifi is either already in the requested state, or
+		// in progress toward the requested state".
 		if (wifiManager.setWifiEnabled(true)) {
 			return true;
 		}
 
-		// If an essential permission has been permanently denied, ask the
-		// user to change the setting
-		if (wifiSetting == Permission.PERMANENTLY_DENIED) {
-			showDenialDialog(ctx, R.string.wifi_settings_title,
-					R.string.wifi_settings_request_denied_body,
-					(d, w) -> requestEnableWiFi());
-			return false;
-		}
+		// Wifi is not enabled and we can't seem to enable it, so ask the user
+		// to enable it for us.
+		showRationale(ctx, R.string.wifi_settings_title,
+				R.string.wifi_settings_request_enable_body,
+				this::requestEnableWiFi);
 
-		// Should we show the rationale for Wi-Fi permission?
-		if (wifiSetting == Permission.SHOW_RATIONALE) {
-			showRationale(ctx, R.string.wifi_settings_title,
-					R.string.wifi_settings_request_enable_body,
-					this::requestEnableWiFi);
-		}
 		return false;
 	}
 
 	private void requestEnableWiFi() {
 		wifiRequest.launch(new Intent(Settings.ACTION_WIFI_SETTINGS));
-	}
-
-	private void onRequestWifiEnabledResult() {
-		wifiSetting = wifiManager.isWifiEnabled() ? Permission.GRANTED :
-				Permission.PERMANENTLY_DENIED;
 	}
 
 }
