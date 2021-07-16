@@ -31,10 +31,10 @@ import static org.briarproject.hotspot.UiUtils.showRationale;
  * As soon as {@link #checkAndRequestConditions()} returns true,
  * all conditions are fulfilled.
  */
-public class ConditionManager28 implements ConditionManager {
+public class ConditionManagerImpl implements ConditionManager {
 
 	private static final Logger LOG =
-			getLogger(ConditionManager28.class.getName());
+			getLogger(ConditionManagerImpl.class.getName());
 
 	private FragmentActivity ctx;
 	private WifiManager wifiManager;
@@ -42,7 +42,7 @@ public class ConditionManager28 implements ConditionManager {
 	private boolean wifiP2pEnabled = false;
 	private final Runnable permissionUpdateCallback;
 
-	ConditionManager28(ActivityResultCaller arc,
+	ConditionManagerImpl(ActivityResultCaller arc,
 			Runnable permissionUpdateCallback) {
 		this.permissionUpdateCallback = permissionUpdateCallback;
 		wifiRequest = arc.registerForActivityResult(
