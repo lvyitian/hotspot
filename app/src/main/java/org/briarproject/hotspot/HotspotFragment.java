@@ -33,6 +33,20 @@ public class HotspotFragment extends Fragment {
 	private ImageView qrCode;
 	private TextView ssidView, passwordView, statusView;
 	private Button button, serverButton;
+	/*
+	 * We keep track of whether a start has been requested by tapping the button.
+	 * The PermissionUpdateCallback we pass to the ConditionManager can receive
+	 * an update even if we actually did not try to start the hotspot yet. If
+	 * we did not check if the user actually requested to start the hotspot, we
+	 * would start the hotspot as soon as all conditions are fulfilled. We don't
+	 * want that behavior, instead we want the user to actively initiate that
+	 * process.
+	 *
+	 * We set this variable to true when the button gets tapped and reset to
+	 * false as soon as we receive any status update from the view model about
+	 * the hotspot status.
+	 */
+	private boolean startRequested = false;
 	private boolean hotspotStarted = false;
 
 	private final ConditionManager conditionManager = SDK_INT < 29 ?
@@ -67,6 +81,7 @@ public class HotspotFragment extends Fragment {
 						.setText(getString(R.string.wifi_5ghz_supported)));
 
 		viewModel.getStatus().observe(getViewLifecycleOwner(), state -> {
+			startRequested = false;
 			if (state instanceof StartingHotspot) {
 				statusView.setText(getString(R.string.starting_hotspot));
 			} else if (state instanceof HotspotStarted) {
@@ -133,7 +148,13 @@ public class HotspotFragment extends Fragment {
 	@Override
 	public void onStart() {
 		super.onStart();
-		conditionManager.resetPermissions();
+		conditionManager.onStart();
+	}
+
+	@Override
+	public void onStop() {
+		super.onStop();
+		conditionManager.onStop();
 	}
 
 	public void onButtonClick(View view) {
@@ -143,17 +164,15 @@ public class HotspotFragment extends Fragment {
 			viewModel.stopWifiP2pHotspot();
 		} else {
 			// the hotspot is currently stopped → start it
-			if (conditionManager.checkAndRequestConditions()) {
-				startWifiP2pHotspot();
-			}
+			button.setEnabled(false);
+			startRequested = true;
+			startWifiP2pHotspot();
 		}
 	}
 
 	private void startWifiP2pHotspot() {
-		if (conditionManager.checkAndRequestConditions()) {
-			button.setEnabled(false);
+		if (startRequested && conditionManager.checkAndRequestConditions())
 			viewModel.startWifiP2pHotspot();
-		}
 	}
 
 	public void onServerButtonClick(View view) {
