@@ -50,8 +50,8 @@ public class HotspotFragment extends Fragment {
 	private boolean hotspotStarted = false;
 
 	private final ConditionManager conditionManager = SDK_INT < 29 ?
-			new ConditionManager28(this, this::startWifiP2pHotspot) :
-			new ConditionManager29(this, this::startWifiP2pHotspot);
+			new ConditionManagerImpl(this, this::startWifiP2pHotspot) :
+			new ConditionManager29Impl(this, this::startWifiP2pHotspot);
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,

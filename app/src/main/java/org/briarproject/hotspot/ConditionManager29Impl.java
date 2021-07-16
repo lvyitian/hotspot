@@ -26,7 +26,7 @@ import static org.briarproject.hotspot.UiUtils.showRationale;
  * all conditions are fulfilled.
  */
 @RequiresApi(29)
-public class ConditionManager29 implements ConditionManager {
+public class ConditionManager29Impl implements ConditionManager {
 
 	private Permission locationPermission = Permission.UNKNOWN;
 
@@ -35,7 +35,7 @@ public class ConditionManager29 implements ConditionManager {
 	private final ActivityResultLauncher<String> locationRequest;
 	private final ActivityResultLauncher<Intent> wifiRequest;
 
-	ConditionManager29(ActivityResultCaller arc,
+	ConditionManager29Impl(ActivityResultCaller arc,
 			Runnable permissionUpdateCallback) {
 		locationRequest = arc.registerForActivityResult(
 				new RequestPermission(), granted -> {
