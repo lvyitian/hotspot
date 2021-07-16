@@ -50,6 +50,15 @@ public class ConditionManagerImpl implements ConditionManager {
 				result -> permissionUpdateCallback.run());
 	}
 
+	/**
+	 * When Wifi is off and gets enabled using {@link WifiManager#setWifiEnabled},
+	 * it takes a while until Wifi P2P is also available and it is safe to call
+	 * {@link android.net.wifi.p2p.WifiP2pManager#createGroup}. On API levels 29
+	 * and above, there's {@link android.net.wifi.p2p.WifiP2pManager#requestP2pState},
+	 * but on pre 29 the only thing we can do is register a broadcast on
+	 * WIFI_P2P_STATE_CHANGED_ACTION and wait until Wifi P2P is available.
+	 * Issue #2088 uncovered that this is necessary.
+	 */
 	final BroadcastReceiver receiver = new BroadcastReceiver() {
 
 		@Override
