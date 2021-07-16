@@ -36,15 +36,16 @@ public class ConditionManager29 implements ConditionManager {
 	private final ActivityResultLauncher<Intent> wifiRequest;
 
 	ConditionManager29(ActivityResultCaller arc,
-			PermissionUpdateCallback callback) {
+			Runnable permissionUpdateCallback) {
 		locationRequest = arc.registerForActivityResult(
 				new RequestPermission(), granted -> {
 					onRequestPermissionResult(granted);
-					callback.update();
+					permissionUpdateCallback.run();
 				});
 
 		wifiRequest = arc.registerForActivityResult(
-				new StartActivityForResult(), result -> callback.update());
+				new StartActivityForResult(),
+				result -> permissionUpdateCallback.run());
 	}
 
 	@Override
@@ -55,8 +56,13 @@ public class ConditionManager29 implements ConditionManager {
 	}
 
 	@Override
-	public void resetPermissions() {
+	public void onStart() {
 		locationPermission = Permission.UNKNOWN;
+	}
+
+	@Override
+	public void onStop() {
+
 	}
 
 	private boolean areEssentialPermissionsGranted() {

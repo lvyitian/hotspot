@@ -13,21 +13,22 @@ interface ConditionManager {
 		UNKNOWN, GRANTED, SHOW_RATIONALE, PERMANENTLY_DENIED
 	}
 
-	interface PermissionUpdateCallback {
-		void update();
-	}
-
 	/**
 	 * Pass a FragmentActivity context here during `onCreateView()`.
 	 */
 	void init(FragmentActivity ctx);
 
 	/**
-	 * Call this to reset state. Do this every time a user interaction triggers
-	 * a request to start the hotspot to make sure we don't use internal state
-	 * about permissions that we might have lost in the meantime.
+	 * Call this during onStart() in the fragment where the ConditionManager
+	 * is used.
 	 */
-	void resetPermissions();
+	void onStart();
+
+	/**
+	 * Call this during onStop() in the fragment where the ConditionManager
+	 * is used.
+	 */
+	void onStop();
 
 	/**
 	 * Check if all required conditions are met such that the hotspot can be

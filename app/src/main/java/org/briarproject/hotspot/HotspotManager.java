@@ -1,9 +1,6 @@
 package org.briarproject.hotspot;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pGroup;
@@ -26,12 +23,8 @@ import static android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF;
 import static android.net.wifi.p2p.WifiP2pConfig.GROUP_OWNER_BAND_2GHZ;
 import static android.net.wifi.p2p.WifiP2pManager.BUSY;
 import static android.net.wifi.p2p.WifiP2pManager.ERROR;
-import static android.net.wifi.p2p.WifiP2pManager.EXTRA_WIFI_STATE;
 import static android.net.wifi.p2p.WifiP2pManager.NO_SERVICE_REQUESTS;
 import static android.net.wifi.p2p.WifiP2pManager.P2P_UNSUPPORTED;
-import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION;
-import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_STATE_DISABLED;
-import static android.net.wifi.p2p.WifiP2pManager.WIFI_P2P_STATE_ENABLED;
 import static android.os.Build.VERSION.SDK_INT;
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Logger.getLogger;
@@ -103,62 +96,19 @@ class HotspotManager implements ActionListener {
 				networkName = getNetworkName();
 				String passphrase = getPassphrase();
 				// TODO: maybe remove this in the production version
-				LOG.info("networkName: " + networkName);
+				if (LOG.isLoggable(INFO))
+					LOG.info("networkName: " + networkName);
 				WifiP2pConfig config = new WifiP2pConfig.Builder()
 						.setGroupOperatingBand(GROUP_OWNER_BAND_2GHZ)
 						.setNetworkName(networkName)
 						.setPassphrase(passphrase)
 						.build();
 				wifiP2pManager.createGroup(channel, config, this);
-			} else if (!receiverRegistered) {
-				ctx.registerReceiver(receiver, new IntentFilter(
-						WIFI_P2P_STATE_CHANGED_ACTION));
-				receiverRegistered = true;
+			} else {
+				wifiP2pManager.createGroup(channel, this);
 			}
 		} catch (SecurityException e) {
 			// this should never happen, because we request permissions before
-			throw new AssertionError(e);
-		}
-	}
-
-	// Only used on API < 29. The flag will be read and written only from the UI
-	// thread, either by methods annotated @UiThread or by the broadcast receiver
-	// which also runs on the UI thread.
-	private boolean receiverRegistered = false;
-	final BroadcastReceiver receiver = new BroadcastReceiver() {
-
-		@Override
-		@UiThread
-		public void onReceive(Context context, Intent intent) {
-			if (!WIFI_P2P_STATE_CHANGED_ACTION.equals(intent.getAction())) {
-				return;
-			}
-			int state = intent.getIntExtra(EXTRA_WIFI_STATE,
-					WIFI_P2P_STATE_DISABLED);
-			if (state == WIFI_P2P_STATE_ENABLED) {
-				try {
-					wifiP2pManager.createGroup(channel, HotspotManager.this);
-				} catch (SecurityException e) {
-					// this should never happen, because we request permissions before
-					throw new AssertionError(e);
-				}
-				unregisterReceiver();
-			}
-		}
-
-	};
-
-	@UiThread
-	private void unregisterReceiver() {
-		if (!receiverRegistered)
-			return;
-		try {
-			ctx.unregisterReceiver(receiver);
-			receiverRegistered = false;
-		} catch (IllegalArgumentException e) {
-			// This gets thrown when we try to unregister an already unregistered
-			// receiver. We do keep a flag whether the receiver is actually
-			// registered, so it should not happen.
 			throw new AssertionError(e);
 		}
 	}
@@ -175,8 +125,6 @@ class HotspotManager implements ActionListener {
 
 	@UiThread
 	void stopWifiP2pHotspot() {
-		if (SDK_INT < 29)
-			unregisterReceiver();
 		if (channel == null) return;
 		wifiP2pManager.removeGroup(channel, new ActionListener() {
 
