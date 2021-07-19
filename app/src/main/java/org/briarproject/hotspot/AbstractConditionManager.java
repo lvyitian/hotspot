@@ -24,7 +24,7 @@ abstract class AbstractConditionManager implements ConditionManager {
 	private static final Logger LOG =
 			getLogger(AbstractConditionManager.class.getName());
 
-	protected Runnable permissionUpdateCallback;
+	protected final Runnable permissionUpdateCallback;
 	protected FragmentActivity ctx;
 	protected WifiManager wifiManager;
 	protected boolean wifiP2pEnabled = false;

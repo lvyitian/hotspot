@@ -21,8 +21,7 @@ import static org.briarproject.hotspot.UiUtils.showRationale;
  * As soon as {@link #checkAndRequestConditions()} returns true,
  * all conditions are fulfilled.
  */
-public class ConditionManagerImpl extends AbstractConditionManager
-		implements ConditionManager {
+public class ConditionManagerImpl extends AbstractConditionManager {
 
 	private static final Logger LOG =
 			getLogger(ConditionManagerImpl.class.getName());

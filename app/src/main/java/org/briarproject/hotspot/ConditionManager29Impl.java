@@ -27,8 +27,7 @@ import static org.briarproject.hotspot.UiUtils.showRationale;
  * all conditions are fulfilled.
  */
 @RequiresApi(29)
-public class ConditionManager29Impl extends AbstractConditionManager
-		implements ConditionManager {
+public class ConditionManager29Impl extends AbstractConditionManager {
 
 	private static final Logger LOG =
 			getLogger(ConditionManager29Impl.class.getName());
