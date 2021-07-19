@@ -198,26 +198,41 @@ class HotspotManager implements ActionListener {
 		WifiP2pManager.GroupInfoListener groupListener = group -> {
 			boolean valid = isGroupValid(group);
 			// If the group is valid, set the hotspot to started. If we don't
-			// have any attempts left, we try what we got
-			if (valid || attempt >= MAX_GROUP_INFO_ATTEMPTS) {
-				double frequency = UNKNOWN_FREQUENCY;
-				if (SDK_INT >= 29) {
-					frequency = ((double) group.getFrequency()) / 1000;
-				}
-				listener.onHotspotStarted(new NetworkConfig(
-						group.getNetworkName(), group.getPassphrase(),
-						frequency));
-				requestGroupInfoForConnection();
-			} else {
+			// have any attempts left and we have anything more or less usable,
+			// we try what we got
+			if (valid) {
+				// group is valid
+				onHotspotStarted(group);
+			} else if (attempt < MAX_GROUP_INFO_ATTEMPTS) {
+				// group invalid and we have attempts left
 				retryRequestingGroupInfo(attempt);
+			} else if (group != null) {
+				// no attempts left, try what we got
+				onHotspotStarted(group);
+			} else {
+				// no attempts left, group is null
+				releaseHotspotWithError(
+						ctx.getString(R.string.start_no_attempts_left));
 			}
 		};
+
 		try {
 			if (channel == null) return;
 			wifiP2pManager.requestGroupInfo(channel, groupListener);
 		} catch (SecurityException e) {
 			throw new AssertionError(e);
 		}
+	}
+
+	private void onHotspotStarted(WifiP2pGroup group) {
+		double frequency = UNKNOWN_FREQUENCY;
+		if (SDK_INT >= 29) {
+			frequency = ((double) group.getFrequency()) / 1000;
+		}
+		listener.onHotspotStarted(new NetworkConfig(
+				group.getNetworkName(), group.getPassphrase(),
+				frequency));
+		requestGroupInfoForConnection();
 	}
 
 	private void requestGroupInfoForConnection() {
