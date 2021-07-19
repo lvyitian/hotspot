@@ -151,12 +151,6 @@ public class HotspotFragment extends Fragment {
 		conditionManager.onStart();
 	}
 
-	@Override
-	public void onStop() {
-		super.onStop();
-		conditionManager.onStop();
-	}
-
 	public void onButtonClick(View view) {
 		if (hotspotStarted) {
 			// the hotspot is currently started → stop it

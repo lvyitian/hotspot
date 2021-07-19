@@ -41,15 +41,18 @@ class ConditionManagerImpl extends ConditionManager {
 		super.init(ctx);
 	}
 
+	@Override
+	void onStart() {
+		// nothing to do here
+	}
+
 	private boolean areEssentialPermissionsGranted() {
 		if (LOG.isLoggable(INFO)) {
-			LOG.info(String.format("areEssentialPermissionsGranted():" +
-							"wifiManager.isWifiEnabled()? %b, " +
-							"wifiP2pEnabled? %b",
-					wifiManager.isWifiEnabled(),
-					wifiP2pEnabled));
+			LOG.info(String.format("areEssentialPermissionsGranted(): " +
+							"wifiManager.isWifiEnabled()? %b",
+					wifiManager.isWifiEnabled()));
 		}
-		return wifiManager.isWifiEnabled() && wifiP2pEnabled;
+		return wifiManager.isWifiEnabled();
 	}
 
 	@Override
@@ -62,7 +65,7 @@ class ConditionManagerImpl extends ConditionManager {
 			// in progress toward the requested state".
 			if (wifiManager.setWifiEnabled(true)) {
 				LOG.info("Enabled wifi");
-				return false;
+				return true;
 			}
 
 			// Wifi is not enabled and we can't seem to enable it, so ask the user
@@ -72,7 +75,7 @@ class ConditionManagerImpl extends ConditionManager {
 					this::requestEnableWiFi);
 		}
 
-		return wifiP2pEnabled;
+		return false;
 	}
 
 	private void requestEnableWiFi() {

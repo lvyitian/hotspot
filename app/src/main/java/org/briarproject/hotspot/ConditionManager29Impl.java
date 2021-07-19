@@ -37,26 +37,6 @@ class ConditionManager29Impl extends ConditionManager {
 
 	private final ActivityResultLauncher<String> locationRequest;
 	private final ActivityResultLauncher<Intent> wifiRequest;
-	/**
-	 * We keep track here whether a wifi request is currently running. It is used
-	 * for two things:
-	 * <p>
-	 * 1. If a Wifi request is still running, then areEssentialPermissionsGranted()
-	 * will still return false, so that we don't jump to the next screen while
-	 * the fragment is still overlayed with the snack bar style settings action.
-	 * <p>
-	 * 2. If a Wifi request is running, do not attempt to start another one
-	 * during checkAndRequestConditions(). Otherwise we would show the rational
-	 * dialog prompting the user to enable Wifi after the the user enabled Wifi
-	 * and the WifiP2p broadcast got received even though the user has not
-	 * dismissed the settings action yet (which is the expected situation,
-	 * because one needs to dismiss that action quickly in order to be quicker
-	 * than WifiP2p being enabled.
-	 * <p>
-	 * This flag is set to true during requestEnableWiFi() and set to false in
-	 * the activity result callback.
-	 */
-	private boolean wifiRequestInProgress = false;
 
 	ConditionManager29Impl(ActivityResultCaller arc,
 			Runnable permissionUpdateCallback) {
@@ -68,33 +48,24 @@ class ConditionManager29Impl extends ConditionManager {
 				});
 		wifiRequest = arc.registerForActivityResult(
 				new StartActivityForResult(),
-				result -> {
-					wifiRequestInProgress = false;
-					permissionUpdateCallback.run();
-				});
+				result -> permissionUpdateCallback.run());
 	}
 
 	@Override
 	void onStart() {
-		super.onStart();
 		locationPermission = Permission.UNKNOWN;
 	}
 
 	private boolean areEssentialPermissionsGranted() {
 		if (LOG.isLoggable(INFO)) {
-			LOG.info(String.format("areEssentialPermissionsGranted():" +
+			LOG.info(String.format("areEssentialPermissionsGranted(): " +
 							"locationPermission? %s, " +
-							"wifiRequestInProgress? %b, " +
-							"wifiManager.isWifiEnabled()? %b, " +
-							"wifiP2pEnabled? %b",
+							"wifiManager.isWifiEnabled()? %b",
 					locationPermission,
-					wifiRequestInProgress,
-					wifiManager.isWifiEnabled(),
-					wifiP2pEnabled));
+					wifiManager.isWifiEnabled()));
 		}
 		return locationPermission == Permission.GRANTED &&
-				!wifiRequestInProgress && wifiManager.isWifiEnabled() &&
-				wifiP2pEnabled;
+				wifiManager.isWifiEnabled();
 	}
 
 	@Override
@@ -124,7 +95,7 @@ class ConditionManager29Impl extends ConditionManager {
 		}
 
 		// If Wifi is not enabled, we show the rationale for enabling Wifi?
-		if (!wifiRequestInProgress && !wifiManager.isWifiEnabled()) {
+		if (!wifiManager.isWifiEnabled()) {
 			showRationale(ctx, R.string.wifi_settings_title,
 					R.string.wifi_settings_request_enable_body,
 					this::requestEnableWiFi);
@@ -148,7 +119,6 @@ class ConditionManager29Impl extends ConditionManager {
 	}
 
 	private void requestEnableWiFi() {
-		wifiRequestInProgress = true;
 		wifiRequest.launch(new Intent(Settings.Panel.ACTION_WIFI));
 	}
 
