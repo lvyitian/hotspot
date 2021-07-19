@@ -27,7 +27,7 @@ import static org.briarproject.hotspot.UiUtils.showRationale;
  * all conditions are fulfilled.
  */
 @RequiresApi(29)
-public class ConditionManager29Impl extends AbstractConditionManager {
+class ConditionManager29Impl extends ConditionManager {
 
 	private static final Logger LOG =
 			getLogger(ConditionManager29Impl.class.getName());
@@ -36,20 +36,25 @@ public class ConditionManager29Impl extends AbstractConditionManager {
 
 	private final ActivityResultLauncher<String> locationRequest;
 	private final ActivityResultLauncher<Intent> wifiRequest;
-	// We keep track here whether a wifi request is currently running. It is used
-	// for two things:
-	// 1. If a Wifi request is still running, then areEssentialPermissionsGranted()
-	//    will still return false, so that we don't jump to the next screen while
-	//    the fragment is still overlayed with the snack bar style setttings action.
-	// 2. If a Wifi request is running, do not attempt to start another one
-	//    during checkAndRequestConditions(). Otherwise we would show the rational
-	//    dialog prompting the user to enable Wifi after the the user enabled Wifi
-	//    and the WifiP2p broadcast got received even though the user has not
-	//    dimissed the settings action yet (which is the expected situation,
-	//    because one needs to dismiss that action quicky in order to be quicker
-	//    than WifiP2p being enabled.
-	// This flag is set to true during requestEnableWiFi() and set to false in
-	// the activity result callback.
+	/**
+	 * We keep track here whether a wifi request is currently running. It is used
+	 * for two things:
+	 * <p>
+	 * 1. If a Wifi request is still running, then areEssentialPermissionsGranted()
+	 * will still return false, so that we don't jump to the next screen while
+	 * the fragment is still overlayed with the snack bar style settings action.
+	 * <p>
+	 * 2. If a Wifi request is running, do not attempt to start another one
+	 * during checkAndRequestConditions(). Otherwise we would show the rational
+	 * dialog prompting the user to enable Wifi after the the user enabled Wifi
+	 * and the WifiP2p broadcast got received even though the user has not
+	 * dismissed the settings action yet (which is the expected situation,
+	 * because one needs to dismiss that action quickly in order to be quicker
+	 * than WifiP2p being enabled.
+	 * <p>
+	 * This flag is set to true during requestEnableWiFi() and set to false in
+	 * the activity result callback.
+	 */
 	private boolean wifiRequestInProgress = false;
 
 	ConditionManager29Impl(ActivityResultCaller arc,
@@ -68,7 +73,8 @@ public class ConditionManager29Impl extends AbstractConditionManager {
 				});
 	}
 
-	public void onStart() {
+	@Override
+	void onStart() {
 		super.onStart();
 		locationPermission = Permission.UNKNOWN;
 	}
@@ -91,7 +97,7 @@ public class ConditionManager29Impl extends AbstractConditionManager {
 	}
 
 	@Override
-	public boolean checkAndRequestConditions() {
+	boolean checkAndRequestConditions() {
 		if (areEssentialPermissionsGranted()) return true;
 
 		if (locationPermission == Permission.UNKNOWN) {

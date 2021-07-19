@@ -21,7 +21,7 @@ import static org.briarproject.hotspot.UiUtils.showRationale;
  * As soon as {@link #checkAndRequestConditions()} returns true,
  * all conditions are fulfilled.
  */
-public class ConditionManagerImpl extends AbstractConditionManager {
+class ConditionManagerImpl extends ConditionManager {
 
 	private static final Logger LOG =
 			getLogger(ConditionManagerImpl.class.getName());
@@ -37,7 +37,7 @@ public class ConditionManagerImpl extends AbstractConditionManager {
 	}
 
 	@Override
-	public void init(FragmentActivity ctx) {
+	void init(FragmentActivity ctx) {
 		super.init(ctx);
 	}
 
@@ -53,7 +53,7 @@ public class ConditionManagerImpl extends AbstractConditionManager {
 	}
 
 	@Override
-	public boolean checkAndRequestConditions() {
+	boolean checkAndRequestConditions() {
 		if (areEssentialPermissionsGranted()) return true;
 
 		if (!wifiManager.isWifiEnabled()) {
