@@ -69,7 +69,6 @@ public class ConditionManager29Impl extends AbstractConditionManager
 				});
 	}
 
-
 	public void onStart() {
 		super.onStart();
 		locationPermission = Permission.UNKNOWN;
@@ -78,8 +77,12 @@ public class ConditionManager29Impl extends AbstractConditionManager
 	private boolean areEssentialPermissionsGranted() {
 		if (LOG.isLoggable(INFO)) {
 			LOG.info(String.format("areEssentialPermissionsGranted():" +
-							"wifiManager.isWifiEnabled()? %b," +
+							"locationPermission? %s, " +
+							"wifiRequestInProgress? %b, " +
+							"wifiManager.isWifiEnabled()? %b, " +
 							"wifiP2pEnabled? %b",
+					locationPermission,
+					wifiRequestInProgress,
 					wifiManager.isWifiEnabled(),
 					wifiP2pEnabled));
 		}
