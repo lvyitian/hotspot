@@ -9,6 +9,7 @@ import androidx.activity.result.ActivityResultCaller;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission;
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
@@ -131,7 +132,7 @@ class ConditionManager29Impl extends ConditionManager {
 		return false;
 	}
 
-	private void onRequestPermissionResult(Boolean granted) {
+	private void onRequestPermissionResult(@Nullable Boolean granted) {
 		if (granted != null && granted) {
 			locationPermission = Permission.GRANTED;
 		} else if (shouldShowRequestPermissionRationale(ctx,
