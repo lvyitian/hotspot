@@ -21,8 +21,7 @@ import static org.briarproject.hotspot.UiUtils.showRationale;
  * As soon as {@link #checkAndRequestConditions()} returns true,
  * all conditions are fulfilled.
  */
-public class ConditionManagerImpl extends AbstractConditionManager
-		implements ConditionManager {
+public class ConditionManagerImpl extends AbstractConditionManager {
 
 	private static final Logger LOG =
 			getLogger(ConditionManagerImpl.class.getName());
@@ -45,7 +44,7 @@ public class ConditionManagerImpl extends AbstractConditionManager
 	private boolean areEssentialPermissionsGranted() {
 		if (LOG.isLoggable(INFO)) {
 			LOG.info(String.format("areEssentialPermissionsGranted():" +
-							"wifiManager.isWifiEnabled()? %b," +
+							"wifiManager.isWifiEnabled()? %b, " +
 							"wifiP2pEnabled? %b",
 					wifiManager.isWifiEnabled(),
 					wifiP2pEnabled));
