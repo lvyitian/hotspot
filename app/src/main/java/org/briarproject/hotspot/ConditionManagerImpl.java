@@ -62,7 +62,7 @@ class ConditionManagerImpl extends ConditionManager {
 			// in progress toward the requested state".
 			if (wifiManager.setWifiEnabled(true)) {
 				LOG.info("Enabled wifi");
-				return false;
+				return wifiP2pEnabled;
 			}
 
 			// Wifi is not enabled and we can't seem to enable it, so ask the user
