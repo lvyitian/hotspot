@@ -175,22 +175,23 @@ class HotspotManager implements ActionListener {
 	@Override
 	// Callback for wifiP2pManager#createGroup() during startWifiP2pHotspot()
 	public void onFailure(int reason) {
-		if (reason == BUSY)
+		if (reason == BUSY) {
 			// Hotspot already running
 			requestGroupInfo(1);
-		else if (reason == P2P_UNSUPPORTED)
+		} else if (reason == P2P_UNSUPPORTED) {
 			releaseHotspotWithError(ctx.getString(
 					R.string.start_callback_failed, "p2p unsupported"));
-		else if (reason == ERROR)
+		} else if (reason == ERROR) {
 			releaseHotspotWithError(ctx.getString(
 					R.string.start_callback_failed, "p2p error"));
-		else if (reason == NO_SERVICE_REQUESTS)
+		} else if (reason == NO_SERVICE_REQUESTS) {
 			releaseHotspotWithError(ctx.getString(
 					R.string.start_callback_failed, "no service requests"));
-		else
+		} else {
 			// all cases covered, in doubt set to error
 			releaseHotspotWithError(ctx.getString(
 					R.string.start_callback_failed_unknown, reason));
+		}
 	}
 
 	private void requestGroupInfo(int attempt) {
