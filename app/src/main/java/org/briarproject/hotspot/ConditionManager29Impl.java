@@ -99,7 +99,12 @@ class ConditionManager29Impl extends ConditionManager {
 			showRationale(ctx, R.string.wifi_settings_title,
 					R.string.wifi_settings_request_enable_body,
 					this::requestEnableWiFi);
+			return false;
 		}
+
+		// we shouldn't usually reach this point, but if we do, return false
+		// anyway to force a recheck. Maybe some condition changed in the
+		// meantime.
 		return false;
 	}
 

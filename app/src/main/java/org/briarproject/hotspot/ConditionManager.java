@@ -2,12 +2,9 @@ package org.briarproject.hotspot;
 
 import android.net.wifi.WifiManager;
 
-import java.util.logging.Logger;
-
 import androidx.fragment.app.FragmentActivity;
 
 import static android.content.Context.WIFI_SERVICE;
-import static java.util.logging.Logger.getLogger;
 
 /**
  * Abstract base class for the ConditionManagers that ensure that the conditions
@@ -19,9 +16,6 @@ abstract class ConditionManager {
 	enum Permission {
 		UNKNOWN, GRANTED, SHOW_RATIONALE, PERMANENTLY_DENIED
 	}
-
-	private static final Logger LOG =
-			getLogger(ConditionManager.class.getName());
 
 	protected final Runnable permissionUpdateCallback;
 	protected FragmentActivity ctx;

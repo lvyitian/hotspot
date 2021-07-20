@@ -60,25 +60,6 @@ class HotspotManager {
 	private final WifiP2pManager wifiP2pManager;
 	private final Handler handler;
 	private final String lockTag;
-	/**
-	 * As soon as Wifi is enabled, we try starting the WifiP2p framework.
-	 * If Wifi has just been enabled, it is possible that fails. If that happens
-	 * we try again for MAX_FRAMEWORK_ATTEMPTS times after a delay of
-	 * RETRY_DELAY_MILLIS after each attempt.
-	 * <p>
-	 * Rationale: it can take a few milliseconds for WifiP2p to become available
-	 * after enabling Wifi. Depending on the API level it is possible to check this
-	 * using {@link WifiP2pManager#requestP2pState} or register a BroadcastReceiver
-	 * on the WIFI_P2P_STATE_CHANGED_ACTION to get notified when WifiP2p is really
-	 * available. Trying to implement a solution that works reliably using these
-	 * checks turned out to be a long rabbit-hole with lots of corner cases and
-	 * workarounds for specific situations.
-	 * Instead we now rely on this trial-and-error approach of just starting
-	 * the framework and retrying if it fails.
-	 * <p>
-	 * We'll realize that the framework is busy when the ActionListener passed
-	 * to {@link WifiP2pManager#createGroup} is called with onFailure(BUSY)
-	 */
 
 	@Nullable
 	// on API < 29 this is null because we cannot request a custom network name
@@ -109,9 +90,30 @@ class HotspotManager {
 		startWifiP2pFramework(1);
 	}
 
+	/**
+	 * As soon as Wifi is enabled, we try starting the WifiP2p framework.
+	 * If Wifi has just been enabled, it is possible that will fail. If that
+	 * happens we try again for MAX_FRAMEWORK_ATTEMPTS times after a delay of
+	 * RETRY_DELAY_MILLIS after each attempt.
+	 * <p>
+	 * Rationale: it can take a few milliseconds for WifiP2p to become available
+	 * after enabling Wifi. Depending on the API level it is possible to check this
+	 * using {@link WifiP2pManager#requestP2pState} or register a BroadcastReceiver
+	 * on the WIFI_P2P_STATE_CHANGED_ACTION to get notified when WifiP2p is really
+	 * available. Trying to implement a solution that works reliably using these
+	 * checks turned out to be a long rabbit-hole with lots of corner cases and
+	 * workarounds for specific situations.
+	 * Instead we now rely on this trial-and-error approach of just starting
+	 * the framework and retrying if it fails.
+	 * <p>
+	 * We'll realize that the framework is busy when the ActionListener passed
+	 * to {@link WifiP2pManager#createGroup} is called with onFailure(BUSY)
+	 */
 	void startWifiP2pFramework(int attempt) {
-		/**
-		 * It is important that we call {@link WifiP2pManager#initialize} again
+		if (LOG.isLoggable(INFO))
+			LOG.info("startWifiP2pFramework attempt: " + attempt);
+		/*
+		 * It is important that we call WifiP2pManager#initialize again
 		 * for every attempt to starting the framework because otherwise,
 		 * createGroup() will continue to fail with a BUSY state.
 		 */
@@ -177,6 +179,7 @@ class HotspotManager {
 	}
 
 	private void restartWifiP2pFramework(int attempt) {
+		LOG.info("retrying to start WifiP2p framework");
 		if (attempt < MAX_FRAMEWORK_ATTEMPTS) {
 			handler.postDelayed(() -> startWifiP2pFramework(attempt + 1),
 					RETRY_DELAY_MILLIS);
@@ -327,7 +330,7 @@ class HotspotManager {
 	}
 
 	private void retryRequestingGroupInfo(int attempt) {
-		LOG.info("retrying");
+		LOG.info("retrying to request group info");
 		// On some devices we need to wait for the group info to become available
 		if (attempt < MAX_GROUP_INFO_ATTEMPTS) {
 			handler.postDelayed(() -> requestGroupInfo(attempt + 1),

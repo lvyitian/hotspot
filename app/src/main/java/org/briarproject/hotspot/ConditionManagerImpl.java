@@ -8,7 +8,6 @@ import java.util.logging.Logger;
 import androidx.activity.result.ActivityResultCaller;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
-import androidx.fragment.app.FragmentActivity;
 
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Logger.getLogger;
@@ -34,11 +33,6 @@ class ConditionManagerImpl extends ConditionManager {
 		wifiRequest = arc.registerForActivityResult(
 				new StartActivityForResult(),
 				result -> permissionUpdateCallback.run());
-	}
-
-	@Override
-	void init(FragmentActivity ctx) {
-		super.init(ctx);
 	}
 
 	@Override
