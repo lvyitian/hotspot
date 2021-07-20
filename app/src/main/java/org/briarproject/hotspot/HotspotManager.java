@@ -30,7 +30,7 @@ import static java.util.logging.Level.INFO;
 import static java.util.logging.Logger.getLogger;
 import static org.briarproject.hotspot.StringUtils.getRandomString;
 
-class HotspotManager implements ActionListener {
+class HotspotManager {
 
 	interface HotspotListener {
 
@@ -47,7 +47,6 @@ class HotspotManager implements ActionListener {
 	}
 
 	private static final Logger LOG = getLogger(HotspotManager.class.getName());
-
 
 	private static final int MAX_FRAMEWORK_ATTEMPTS = 5;
 	private static final int MAX_GROUP_INFO_ATTEMPTS = 5;
@@ -80,7 +79,6 @@ class HotspotManager implements ActionListener {
 	 * We'll realize that the framework is busy when the ActionListener passed
 	 * to {@link WifiP2pManager#createGroup} is called with onFailure(BUSY)
 	 */
-	private int attemptToStartFramework;
 
 	@Nullable
 	// on API < 29 this is null because we cannot request a custom network name
@@ -108,11 +106,10 @@ class HotspotManager implements ActionListener {
 		}
 		listener.onStartingHotspot();
 		acquireLock();
-		attemptToStartFramework = 1;
-		startWifiP2pFramework();
+		startWifiP2pFramework(1);
 	}
 
-	void startWifiP2pFramework() {
+	void startWifiP2pFramework(int attempt) {
 		/**
 		 * It is important that we call {@link WifiP2pManager#initialize} again
 		 * for every attempt to starting the framework because otherwise,
@@ -123,6 +120,40 @@ class HotspotManager implements ActionListener {
 			listener.onHotspotError(ctx.getString(R.string.no_wifi_direct));
 			return;
 		}
+
+		ActionListener listener = new ActionListener() {
+
+			@Override
+			// Callback for wifiP2pManager#createGroup() during startWifiP2pHotspot()
+			public void onSuccess() {
+				requestGroupInfo(1);
+			}
+
+			@Override
+			// Callback for wifiP2pManager#createGroup() during startWifiP2pHotspot()
+			public void onFailure(int reason) {
+				LOG.info("onFailure: " + reason);
+				if (reason == BUSY) {
+					// WifiP2p not ready yet or hotspot already running
+					restartWifiP2pFramework(attempt);
+				} else if (reason == P2P_UNSUPPORTED) {
+					releaseHotspotWithError(ctx.getString(
+							R.string.start_callback_failed, "p2p unsupported"));
+				} else if (reason == ERROR) {
+					releaseHotspotWithError(ctx.getString(
+							R.string.start_callback_failed, "p2p error"));
+				} else if (reason == NO_SERVICE_REQUESTS) {
+					releaseHotspotWithError(ctx.getString(
+							R.string.start_callback_failed,
+							"no service requests"));
+				} else {
+					// all cases covered, in doubt set to error
+					releaseHotspotWithError(ctx.getString(
+							R.string.start_callback_failed_unknown, reason));
+				}
+			}
+		};
+
 		try {
 			if (SDK_INT >= 29) {
 				networkName = getNetworkName();
@@ -135,9 +166,9 @@ class HotspotManager implements ActionListener {
 						.setNetworkName(networkName)
 						.setPassphrase(passphrase)
 						.build();
-				wifiP2pManager.createGroup(channel, config, this);
+				wifiP2pManager.createGroup(channel, config, listener);
 			} else {
-				wifiP2pManager.createGroup(channel, this);
+				wifiP2pManager.createGroup(channel, listener);
 			}
 		} catch (SecurityException e) {
 			// this should never happen, because we request permissions before
@@ -145,9 +176,9 @@ class HotspotManager implements ActionListener {
 		}
 	}
 
-	private void restartWifiP2pFramework() {
-		if (attemptToStartFramework++ < MAX_FRAMEWORK_ATTEMPTS) {
-			handler.postDelayed(this::startWifiP2pFramework,
+	private void restartWifiP2pFramework(int attempt) {
+		if (attempt < MAX_FRAMEWORK_ATTEMPTS) {
+			handler.postDelayed(() -> startWifiP2pFramework(attempt + 1),
 					RETRY_DELAY_MILLIS);
 		} else {
 			releaseHotspotWithError(
@@ -206,35 +237,6 @@ class HotspotManager implements ActionListener {
 		if (SDK_INT >= 27) channel.close();
 		channel = null;
 		wifiLock.release();
-	}
-
-	@Override
-	// Callback for wifiP2pManager#createGroup() during startWifiP2pHotspot()
-	public void onSuccess() {
-		requestGroupInfo(1);
-	}
-
-	@Override
-	// Callback for wifiP2pManager#createGroup() during startWifiP2pHotspot()
-	public void onFailure(int reason) {
-		LOG.info("onFailure: " + reason);
-		if (reason == BUSY) {
-			// WifiP2p not ready yet or hotspot already running
-			restartWifiP2pFramework();
-		} else if (reason == P2P_UNSUPPORTED) {
-			releaseHotspotWithError(ctx.getString(
-					R.string.start_callback_failed, "p2p unsupported"));
-		} else if (reason == ERROR) {
-			releaseHotspotWithError(ctx.getString(
-					R.string.start_callback_failed, "p2p error"));
-		} else if (reason == NO_SERVICE_REQUESTS) {
-			releaseHotspotWithError(ctx.getString(
-					R.string.start_callback_failed, "no service requests"));
-		} else {
-			// all cases covered, in doubt set to error
-			releaseHotspotWithError(ctx.getString(
-					R.string.start_callback_failed_unknown, reason));
-		}
 	}
 
 	private void requestGroupInfo(int attempt) {
