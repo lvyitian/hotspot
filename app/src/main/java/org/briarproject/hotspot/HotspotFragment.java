@@ -136,7 +136,7 @@ public class HotspotFragment extends Fragment {
 		conditionManager.onStart();
 	}
 
-	public void onButtonClick(View view) {
+	private void onButtonClick(View view) {
 		button.setEnabled(false);
 		if (hotspotStarted) {
 			// the hotspot is currently started → stop it
