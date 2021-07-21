@@ -2,6 +2,7 @@ package org.briarproject.hotspot;
 
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -136,14 +137,23 @@ public class HotspotFragment extends Fragment {
 		conditionManager.onStart();
 	}
 
+	private long lastClickTime = 0;
+
 	public void onButtonClick(View view) {
+		// don't allow repetitive taps under 1s
+		if (SystemClock.elapsedRealtime() - lastClickTime < 1000) {
+			return;
+		}
+		lastClickTime = SystemClock.elapsedRealtime();
+		onButtonClicked();
+	}
+
+	private void onButtonClicked() {
 		if (hotspotStarted) {
 			// the hotspot is currently started → stop it
-			button.setEnabled(false);
 			viewModel.stopWifiP2pHotspot();
 		} else {
 			// the hotspot is currently stopped → start it
-			button.setEnabled(false);
 			startWifiP2pHotspot();
 		}
 	}
@@ -151,6 +161,7 @@ public class HotspotFragment extends Fragment {
 	private void startWifiP2pHotspot() {
 		if (conditionManager.checkAndRequestConditions()) {
 			viewModel.startWifiP2pHotspot();
+			button.setEnabled(false);
 		}
 	}
 
