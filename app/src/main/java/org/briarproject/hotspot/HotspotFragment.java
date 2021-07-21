@@ -143,11 +143,11 @@ public class HotspotFragment extends Fragment {
 			viewModel.stopWifiP2pHotspot();
 		} else {
 			// the hotspot is currently stopped → start it
-			startWifiP2pHotspot();
+			startWifiP2pHotspotIfConditionsFulfilled();
 		}
 	}
 
-	private void startWifiP2pHotspot() {
+	private void startWifiP2pHotspotIfConditionsFulfilled() {
 		if (conditionManager.checkAndRequestConditions()) {
 			viewModel.startWifiP2pHotspot();
 		}
@@ -156,7 +156,7 @@ public class HotspotFragment extends Fragment {
 	private void onPermissionUpdate(boolean recheckPermissions) {
 		button.setEnabled(true);
 		if (recheckPermissions) {
-			startWifiP2pHotspot();
+			startWifiP2pHotspotIfConditionsFulfilled();
 		}
 	}
 

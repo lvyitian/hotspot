@@ -15,6 +15,7 @@ import androidx.core.util.Consumer;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale;
+import static java.lang.Boolean.TRUE;
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Logger.getLogger;
 import static org.briarproject.hotspot.UiUtils.getGoToSettingsListener;
@@ -45,11 +46,12 @@ class ConditionManager29Impl extends ConditionManager {
 		locationRequest = arc.registerForActivityResult(
 				new RequestPermission(), granted -> {
 					onRequestPermissionResult(granted);
-					permissionUpdateCallback.accept(true);
+					permissionUpdateCallback.accept(TRUE.equals(granted));
 				});
 		wifiRequest = arc.registerForActivityResult(
 				new StartActivityForResult(),
-				result -> permissionUpdateCallback.accept(true));
+				result -> permissionUpdateCallback
+						.accept(wifiManager.isWifiEnabled()));
 	}
 
 	@Override

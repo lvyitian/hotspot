@@ -33,7 +33,8 @@ class ConditionManagerImpl extends ConditionManager {
 		super(permissionUpdateCallback);
 		wifiRequest = arc.registerForActivityResult(
 				new StartActivityForResult(),
-				result -> permissionUpdateCallback.accept(true));
+				result -> permissionUpdateCallback
+						.accept(wifiManager.isWifiEnabled()));
 	}
 
 	@Override
