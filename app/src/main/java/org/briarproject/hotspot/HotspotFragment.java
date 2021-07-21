@@ -2,7 +2,6 @@ package org.briarproject.hotspot;
 
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -37,8 +36,8 @@ public class HotspotFragment extends Fragment {
 	private boolean hotspotStarted = false;
 
 	private final ConditionManager conditionManager = SDK_INT < 29 ?
-			new ConditionManagerImpl(this, this::startWifiP2pHotspot) :
-			new ConditionManager29Impl(this, this::startWifiP2pHotspot);
+			new ConditionManagerImpl(this, this::onPermissionUpdate) :
+			new ConditionManager29Impl(this, this::onPermissionUpdate);
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -137,18 +136,8 @@ public class HotspotFragment extends Fragment {
 		conditionManager.onStart();
 	}
 
-	private long lastClickTime = 0;
-
 	public void onButtonClick(View view) {
-		// don't allow repetitive taps under 1s
-		if (SystemClock.elapsedRealtime() - lastClickTime < 1000) {
-			return;
-		}
-		lastClickTime = SystemClock.elapsedRealtime();
-		onButtonClicked();
-	}
-
-	private void onButtonClicked() {
+		button.setEnabled(false);
 		if (hotspotStarted) {
 			// the hotspot is currently started → stop it
 			viewModel.stopWifiP2pHotspot();
@@ -161,7 +150,13 @@ public class HotspotFragment extends Fragment {
 	private void startWifiP2pHotspot() {
 		if (conditionManager.checkAndRequestConditions()) {
 			viewModel.startWifiP2pHotspot();
-			button.setEnabled(false);
+		}
+	}
+
+	private void onPermissionUpdate(boolean recheckPermissions) {
+		button.setEnabled(true);
+		if (recheckPermissions) {
+			startWifiP2pHotspot();
 		}
 	}
 

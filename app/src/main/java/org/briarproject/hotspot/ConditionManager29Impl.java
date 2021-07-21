@@ -11,6 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts.RequestPermissi
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.core.util.Consumer;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale;
@@ -39,16 +40,16 @@ class ConditionManager29Impl extends ConditionManager {
 	private final ActivityResultLauncher<Intent> wifiRequest;
 
 	ConditionManager29Impl(ActivityResultCaller arc,
-			Runnable permissionUpdateCallback) {
+			Consumer<Boolean> permissionUpdateCallback) {
 		super(permissionUpdateCallback);
 		locationRequest = arc.registerForActivityResult(
 				new RequestPermission(), granted -> {
 					onRequestPermissionResult(granted);
-					permissionUpdateCallback.run();
+					permissionUpdateCallback.accept(true);
 				});
 		wifiRequest = arc.registerForActivityResult(
 				new StartActivityForResult(),
-				result -> permissionUpdateCallback.run());
+				result -> permissionUpdateCallback.accept(true));
 	}
 
 	@Override
@@ -82,7 +83,8 @@ class ConditionManager29Impl extends ConditionManager {
 		if (locationPermission == Permission.PERMANENTLY_DENIED) {
 			showDenialDialog(ctx, R.string.permission_location_title,
 					R.string.permission_hotspot_location_denied_body,
-					getGoToSettingsListener(ctx));
+					getGoToSettingsListener(ctx),
+					() -> permissionUpdateCallback.accept(false));
 			return false;
 		}
 
@@ -90,7 +92,8 @@ class ConditionManager29Impl extends ConditionManager {
 		if (locationPermission == Permission.SHOW_RATIONALE) {
 			showRationale(ctx, R.string.permission_location_title,
 					R.string.permission_hotspot_location_request_body,
-					this::requestPermissions);
+					this::requestPermissions,
+					() -> permissionUpdateCallback.accept(false));
 			return false;
 		}
 
@@ -98,7 +101,8 @@ class ConditionManager29Impl extends ConditionManager {
 		if (!wifiManager.isWifiEnabled()) {
 			showRationale(ctx, R.string.wifi_settings_title,
 					R.string.wifi_settings_request_enable_body,
-					this::requestEnableWiFi);
+					this::requestEnableWiFi,
+					() -> permissionUpdateCallback.accept(false));
 			return false;
 		}
 

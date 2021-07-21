@@ -2,6 +2,7 @@ package org.briarproject.hotspot;
 
 import android.net.wifi.WifiManager;
 
+import androidx.core.util.Consumer;
 import androidx.fragment.app.FragmentActivity;
 
 import static android.content.Context.WIFI_SERVICE;
@@ -17,11 +18,11 @@ abstract class ConditionManager {
 		UNKNOWN, GRANTED, SHOW_RATIONALE, PERMANENTLY_DENIED
 	}
 
-	protected final Runnable permissionUpdateCallback;
+	protected final Consumer<Boolean> permissionUpdateCallback;
 	protected FragmentActivity ctx;
 	protected WifiManager wifiManager;
 
-	ConditionManager(Runnable permissionUpdateCallback) {
+	ConditionManager(Consumer<Boolean> permissionUpdateCallback) {
 		this.permissionUpdateCallback = permissionUpdateCallback;
 	}
 

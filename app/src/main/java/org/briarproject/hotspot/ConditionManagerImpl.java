@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 import androidx.activity.result.ActivityResultCaller;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
+import androidx.core.util.Consumer;
 
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Logger.getLogger;
@@ -28,11 +29,11 @@ class ConditionManagerImpl extends ConditionManager {
 	private final ActivityResultLauncher<Intent> wifiRequest;
 
 	ConditionManagerImpl(ActivityResultCaller arc,
-			Runnable permissionUpdateCallback) {
+			Consumer<Boolean> permissionUpdateCallback) {
 		super(permissionUpdateCallback);
 		wifiRequest = arc.registerForActivityResult(
 				new StartActivityForResult(),
-				result -> permissionUpdateCallback.run());
+				result -> permissionUpdateCallback.accept(true));
 	}
 
 	@Override
@@ -66,7 +67,8 @@ class ConditionManagerImpl extends ConditionManager {
 			// to enable it for us.
 			showRationale(ctx, R.string.wifi_settings_title,
 					R.string.wifi_settings_request_enable_body,
-					this::requestEnableWiFi);
+					this::requestEnableWiFi,
+					() -> permissionUpdateCallback.accept(false));
 		}
 
 		return false;

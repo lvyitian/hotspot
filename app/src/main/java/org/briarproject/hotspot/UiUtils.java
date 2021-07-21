@@ -28,24 +28,27 @@ class UiUtils {
 	}
 
 	static void showDenialDialog(FragmentActivity ctx, @StringRes int title,
-			@StringRes int body, DialogInterface.OnClickListener onOkClicked) {
+			@StringRes int body, DialogInterface.OnClickListener onOkClicked,
+			Runnable onDismiss) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
 		builder.setTitle(title);
 		builder.setMessage(body);
 		builder.setPositiveButton(R.string.ok, onOkClicked);
 		builder.setNegativeButton(R.string.cancel,
 				(dialog, which) -> ctx.supportFinishAfterTransition());
+		builder.setOnDismissListener(dialog -> onDismiss.run());
 		builder.show();
 	}
 
 	static void showRationale(Context ctx, @StringRes int title,
 			@StringRes int body,
-			Runnable onContinueClicked) {
+			Runnable onContinueClicked, Runnable onDismiss) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
 		builder.setTitle(title);
 		builder.setMessage(body);
 		builder.setNeutralButton(R.string.continue_button,
 				(dialog, which) -> onContinueClicked.run());
+		builder.setOnDismissListener(dialog -> onDismiss.run());
 		builder.show();
 	}
 
