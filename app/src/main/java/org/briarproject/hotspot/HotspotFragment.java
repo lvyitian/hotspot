@@ -35,9 +35,9 @@ public class HotspotFragment extends Fragment {
 	private Button button, serverButton;
 	private boolean hotspotStarted = false;
 
-	private final ConditionManager conditionManager = SDK_INT < 29 ?
-			new ConditionManagerImpl(this, this::onPermissionUpdate) :
-			new ConditionManager29Impl(this, this::onPermissionUpdate);
+	private final AbstractConditionManager conditionManager = SDK_INT < 29 ?
+			new ConditionManager(this, this::onPermissionUpdate) :
+			new ConditionManager29(this, this::onPermissionUpdate);
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
