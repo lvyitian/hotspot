@@ -1,12 +1,17 @@
 package org.briarproject.hotspot;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager.WifiLock;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.ActionListener;
+import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.os.Handler;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 
 import org.briarproject.hotspot.HotspotState.NetworkConfig;
 
@@ -16,6 +21,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.UiThread;
 
+import static android.content.Context.POWER_SERVICE;
 import static android.content.Context.WIFI_P2P_SERVICE;
 import static android.content.Context.WIFI_SERVICE;
 import static android.net.wifi.WifiManager.WIFI_MODE_FULL;
@@ -26,6 +32,7 @@ import static android.net.wifi.p2p.WifiP2pManager.ERROR;
 import static android.net.wifi.p2p.WifiP2pManager.NO_SERVICE_REQUESTS;
 import static android.net.wifi.p2p.WifiP2pManager.P2P_UNSUPPORTED;
 import static android.os.Build.VERSION.SDK_INT;
+import static android.os.PowerManager.FULL_WAKE_LOCK;
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Logger.getLogger;
 import static org.briarproject.hotspot.StringUtils.getRandomString;
@@ -58,6 +65,7 @@ class HotspotManager {
 	private final HotspotListener listener;
 	private final WifiManager wifiManager;
 	private final WifiP2pManager wifiP2pManager;
+	private final PowerManager powerManager;
 	private final Handler handler;
 	private final String lockTag;
 
@@ -65,8 +73,9 @@ class HotspotManager {
 	// on API < 29 this is null because we cannot request a custom network name
 	private String networkName = null;
 
-	private WifiManager.WifiLock wifiLock;
-	private WifiP2pManager.Channel channel;
+	private WifiLock wifiLock;
+	private WakeLock wakeLock;
+	private Channel channel;
 
 	HotspotManager(Context ctx, HotspotListener listener) {
 		this.ctx = ctx;
@@ -75,6 +84,7 @@ class HotspotManager {
 				.getSystemService(WIFI_SERVICE);
 		wifiP2pManager =
 				(WifiP2pManager) ctx.getSystemService(WIFI_P2P_SERVICE);
+		powerManager = (PowerManager) ctx.getSystemService(POWER_SERVICE);
 		handler = new Handler(ctx.getMainLooper());
 		lockTag = ctx.getPackageName() + ":app-sharing-hotspot";
 	}
@@ -86,7 +96,7 @@ class HotspotManager {
 			return;
 		}
 		listener.onStartingHotspot();
-		acquireLock();
+		acquireLocks();
 		startWifiP2pFramework(1);
 	}
 
@@ -218,12 +228,16 @@ class HotspotManager {
 		});
 	}
 
-	private void acquireLock() {
+	@SuppressLint("WakelockTimeout")
+	private void acquireLocks() {
 		// WIFI_MODE_FULL has no effect on API >= 29
 		int lockType =
 				SDK_INT >= 29 ? WIFI_MODE_FULL_HIGH_PERF : WIFI_MODE_FULL;
 		wifiLock = wifiManager.createWifiLock(lockType, lockTag);
 		wifiLock.acquire();
+		// FLAG_KEEP_SCREEN_ON is not respected on some Huawei devices.
+		wakeLock = powerManager.newWakeLock(FULL_WAKE_LOCK, lockTag);
+		wakeLock.acquire();
 	}
 
 	private void releaseHotspot() {
@@ -240,6 +254,7 @@ class HotspotManager {
 		if (SDK_INT >= 27) channel.close();
 		channel = null;
 		wifiLock.release();
+		wakeLock.release();
 	}
 
 	private void requestGroupInfo(int attempt) {
